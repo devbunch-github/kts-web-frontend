@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* type rhythm + helpers (keeps pixel consistency) */
+:root{
+  --rose-1:#f2b9bf; --rose-2:#f6cbd0; --rose-3:#c98383;
+  --ink-1:#111827; --ink-2:#4b5563; --ink-3:#6b7280;
+  --card-shadow:0 10px 30px rgba(0,0,0,.06);
+}
+body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+.container-7xl{ max-width:80rem; margin-left:auto; margin-right:auto; }
+.section-pad{ padding:3rem 1rem; }          /* base */
+.section-pad-md{ padding:3.5rem 1rem; }     /* md */
+.section-pad-lg{ padding:4rem 1rem; }       /* lg */
+
+@media(min-width:768px){ .section-pad{padding:3.5rem 1.5rem;} }
+@media(min-width:1024px){ .section-pad{padding:4rem 1.5rem;} }
+
+@keyframes heroZoomIn{ from{transform:scale(1.04);opacity:.4} to{transform:scale(1);opacity:1} }
+.animate-heroZoomIn{ animation:heroZoomIn 1100ms cubic-bezier(.22,.61,.36,1); }
