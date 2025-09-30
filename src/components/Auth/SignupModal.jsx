@@ -1,156 +1,230 @@
 import Modal from "../Modal";
-import { apiRegister } from "../../api/publicApi";
-import { useState } from "react";
+import { getPlans } from "../../api/publicApi";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SignupModal({ open, onClose, onSwitch }) {
+  const [step, setStep] = useState(1);
+  const [plans, setPlans] = useState([]);
+  const [error, setError] = useState("");
+  const [expandedPlan, setExpandedPlan] = useState(null);
+  const navigate = useNavigate();
+
   const [f, setF] = useState({
-    name: "",
-    business_name: "",
     email: "",
-    phone: "",
-    password: "",
-    password_confirmation: "",
-    logo: null,
-    cover_image: null,
+    confirm_email: "",
+    name: "",
+    country: "",
+    salary: "",
+    plan_id: null,
     agree: false,
   });
-  const [error, setError] = useState("");
 
-  const submit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (open) {
+      getPlans().then(setPlans).catch(() => {});
+    }
+  }, [open]);
+
+  const next = () => {
     setError("");
-
-    if (!f.name || !f.business_name || !f.email || !f.phone || !f.password) {
-      setError("Please fill in all required fields.");
+    if (step === 1) {
+      if (!f.email || !f.confirm_email || !f.name || !f.country) {
+        setError("Please fill in all required fields.");
+        return;
+      }
+      if (f.email !== f.confirm_email) {
+        setError("Emails do not match.");
+        return;
+      }
+    }
+    if (step === 3 && !f.plan_id) {
+      setError("Please select a plan.");
       return;
     }
-    if (!f.agree) {
-      setError("You must agree to Terms of use and Privacy Policy.");
-      return;
-    }
-    if (f.password !== f.password_confirmation) {
-      setError("Passwords do not match!");
-      return;
-    }
 
-    try {
-      const formData = new FormData();
-      formData.append("name", f.name);
-      formData.append("business_name", f.business_name);
-      formData.append("email", f.email);
-      formData.append("phone", f.phone);
-      formData.append("password", f.password);
-      formData.append("password_confirmation", f.password_confirmation);
-      if (f.logo) formData.append("logo", f.logo);
-      if (f.cover_image) formData.append("cover_image", f.cover_image);
-
-      await apiRegister(formData);
+    // redirect to payment before password
+    if (step === 3) {
+      navigate(`/subscription/payment?plan=${f.plan_id}&email=${f.email}`);
       onClose();
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Signup failed. This email may already be taken."
-      );
+      return;
     }
+
+    setStep((s) => Math.min(s + 1, 4));
   };
+
+  const prev = () => setStep((s) => Math.max(s - 1, 1));
 
   return (
     <Modal open={open} onClose={onClose} title="Sign up">
-      <p className="text-sm text-neutral-600 mb-4">
-        Sign up to setup your account
-      </p>
-      <form onSubmit={submit} className="space-y-4">
+      {/* Progress bar */}
+      <ProgressBar step={step} />
+
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6 mt-6">
         {error && (
           <div className="rounded-md bg-red-50 border border-red-400 text-red-700 px-3 py-2 text-sm">
             {error}
           </div>
         )}
 
-        <Field
-          label="Full Name"
-          value={f.name}
-          onChange={(v) => setF((s) => ({ ...s, name: v }))}
-          required
-        />
-        <Field
-          label="Business Name"
-          value={f.business_name}
-          onChange={(v) => setF((s) => ({ ...s, business_name: v }))}
-          required
-        />
-        <Field
-          label="Email"
-          type="email"
-          value={f.email}
-          onChange={(v) => setF((s) => ({ ...s, email: v }))}
-          required
-        />
-        <Field
-          label="Mobile Number"
-          value={f.phone}
-          onChange={(v) => setF((s) => ({ ...s, phone: v }))}
-          required
-        />
-        <Field
-          label="Password"
-          type="password"
-          value={f.password}
-          onChange={(v) => setF((s) => ({ ...s, password: v }))}
-          required
-        />
-        <Field
-          label="Confirm Password"
-          type="password"
-          value={f.password_confirmation}
-          onChange={(v) => setF((s) => ({ ...s, password_confirmation: v }))}
-          required
-        />
+        {/* STEP 1: Info */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-neutral-800">
+              Your Information
+            </h3>
+            <Field
+              label="Email"
+              type="email"
+              value={f.email}
+              onChange={(v) => setF((s) => ({ ...s, email: v }))}
+              required
+            />
+            <Field
+              label="Confirm Email"
+              type="email"
+              value={f.confirm_email}
+              onChange={(v) => setF((s) => ({ ...s, confirm_email: v }))}
+              required
+            />
+            <Field
+              label="Full Name"
+              value={f.name}
+              onChange={(v) => setF((s) => ({ ...s, name: v }))}
+              required
+            />
+            <div>
+              <label className="mb-1 block text-sm font-medium text-neutral-700">
+                Country of Residence <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                value={f.country}
+                onChange={(e) =>
+                  setF((s) => ({ ...s, country: e.target.value }))
+                }
+              >
+                <option value="">Select country</option>
+                <option value="UK">United Kingdom</option>
+                <option value="US">United States</option>
+                <option value="PK">Pakistan</option>
+              </select>
+            </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <UploadBox
-            label="Upload Logo"
-            file={f.logo}
-            onChange={(file) => setF((s) => ({ ...s, logo: file }))}
-          />
-          <UploadBox
-            label="Upload Cover Image"
-            file={f.cover_image}
-            onChange={(file) => setF((s) => ({ ...s, cover_image: file }))}
-          />
-        </div>
+        {/* STEP 2: Employment */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-neutral-800">Employment</h3>
+            <p className="text-sm text-neutral-600">
+              If you have employment income please enter your annual salary.
+              Click next to skip.
+            </p>
+            <Field
+              label="Enter Annual Salary"
+              type="number"
+              value={f.salary}
+              onChange={(v) => setF((s) => ({ ...s, salary: v }))}
+            />
+          </div>
+        )}
 
-        <div className="flex items-start gap-2 text-xs text-neutral-600 leading-5">
-          <input
-            type="checkbox"
-            checked={f.agree}
-            onChange={(e) =>
-              setF((s) => ({ ...s, agree: e.target.checked }))
-            }
-          />
-          <span>
-            By sign up you agree to our{" "}
-            <a href="/terms" className="text-orange-500 hover:underline">
-              Terms of use
-            </a>{" "}
-            and{" "}
-            <a href="/privacy" className="text-orange-500 hover:underline">
-              Privacy Policy
-            </a>
-          </span>
-        </div>
+        {/* STEP 3: Plan */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-neutral-800">Choose Your Plan</h3>
+            <div className="space-y-3">
+              {plans.map((p) => {
+                const isSelected = f.plan_id === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    className={`rounded-lg border transition ${
+                      isSelected ? "border-rose-400 bg-rose-50" : "border-neutral-300"
+                    }`}
+                  >
+                    <label
+                      className="flex items-center justify-between w-full cursor-pointer p-4"
+                      onClick={() => setF((s) => ({ ...s, plan_id: p.id }))}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          checked={isSelected}
+                          onChange={() => setF((s) => ({ ...s, plan_id: p.id }))}
+                        />
+                        <div>
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-sm text-neutral-500">
+                            £{p.price}/month
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedPlan(expandedPlan === p.id ? null : p.id);
+                        }}
+                        className="text-sm text-rose-500 underline"
+                      >
+                        {expandedPlan === p.id ? "Hide" : "Details"}
+                      </button>
+                    </label>
 
-        <button className="w-full rounded-full bg-orange-500 py-2.5 text-white font-semibold hover:bg-orange-600 transition">
-          Sign up
-        </button>
+                    {/* Expandable details */}
+                    {(expandedPlan === p.id || isSelected) && (
+                      <div className="px-6 pb-4 text-sm text-neutral-600 space-y-1">
+                        {p.features && p.features.length > 0 ? (
+                          <ul className="list-disc pl-5">
+                            {p.features.map((f, i) => (
+                              <li key={i}>{f}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{p.description}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-        <div className="text-center text-sm mt-2 text-neutral-600">
-          Already have an account?{" "}
+            <p className="text-xs text-neutral-500 mt-4 text-center">
+              You can cancel anytime <br />
+              <a href="/privacy" className="text-rose-500 underline">
+                Privacy Policy
+              </a>{" "}
+              |{" "}
+              <a href="/terms" className="text-rose-500 underline">
+                Terms of Use
+              </a>
+            </p>
+          </div>
+        )}
+
+
+        {/* Footer buttons */}
+        <div className="flex justify-between pt-4">
+          {step > 1 ? (
+            <button
+              type="button"
+              onClick={prev}
+              className="rounded-lg border px-4 py-2 text-sm text-rose-500 border-rose-400 hover:bg-rose-50"
+            >
+              Previous Step
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
-            onClick={onSwitch}
-            className="text-orange-500 hover:underline font-medium"
+            onClick={next}
+            className="rounded-lg bg-rose-400 px-6 py-2 text-white hover:bg-rose-500"
           >
-            Login
+            {step === 3 ? "Continue to Payment" : "Next Step"}
           </button>
         </div>
       </form>
@@ -158,6 +232,7 @@ export default function SignupModal({ open, onClose, onSwitch }) {
   );
 }
 
+/* Components */
 function Field({ label, value, onChange, type = "text", required = false }) {
   return (
     <div>
@@ -166,76 +241,29 @@ function Field({ label, value, onChange, type = "text", required = false }) {
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <input
-        className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
+        className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-rose-400"
       />
     </div>
   );
 }
 
-function UploadBox({ label, file, onChange }) {
-  const [dragging, setDragging] = useState(false);
-
-  const validateFile = (f) => {
-    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!validTypes.includes(f.type)) {
-      alert("Only image files (jpg, png, gif, webp) are allowed.");
-      return false;
-    }
-    return true;
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f && validateFile(f)) onChange(f);
-  };
-
-  const handleSelect = (e) => {
-    const f = e.target.files[0];
-    if (f && validateFile(f)) onChange(f);
-  };
-
+function ProgressBar({ step }) {
   return (
-    <div
-      className={`rounded-lg border-2 border-dashed p-4 text-center text-xs transition cursor-pointer 
-        ${dragging ? "border-orange-400 bg-orange-50" : "border-neutral-300"}`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      onClick={() => document.getElementById(label).click()}
-    >
-      <div className="rounded-md border px-4 py-6 mb-2">
-        {file ? (
-          <div>
-            <img
-              src={URL.createObjectURL(file)}
-              alt="preview"
-              className="mx-auto h-16 object-contain"
-            />
-            <p className="mt-1 text-xs text-neutral-700 truncate">
-              {file.name}
-            </p>
-          </div>
-        ) : (
-          "Drag & drop or click"
-        )}
-      </div>
-      <div className="mt-1">{label}</div>
-      <input
-        id={label}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleSelect}
-      />
+    <div className="flex items-center justify-between">
+      {[1, 2, 3].map((s) => (
+        <div key={s} className="flex-1 flex items-center">
+          <div
+            className={`h-2 rounded-full flex-1 ${
+              s <= step ? "bg-rose-400" : "bg-neutral-300"
+            }`}
+          />
+          {s < 3 && <div className="w-2" />}
+        </div>
+      ))}
     </div>
   );
 }
