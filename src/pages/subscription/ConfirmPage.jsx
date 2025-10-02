@@ -3,17 +3,18 @@ import Footer from "../../components/Footer";
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { confirmCheckout } from "../../api/publicApi";
-import { useAuth } from "../../context/AuthContext"; // ✅ fixed import
+import { useAuth } from "../../context/AuthContext";
 
 export default function ConfirmPage() {
   const [search] = useSearchParams();
   const planId = Number(search.get("plan"));
-  const { user } = useAuth(); // ✅ get logged-in user
+  const { user } = useAuth() || {};
   const nav = useNavigate();
 
   useEffect(() => {
-    if (!planId || !user?.id) return;
-    confirmCheckout({ plan_id: planId, user_id: user.id }).catch(() => {});
+    if (planId && user?.id) {
+      confirmCheckout({ plan_id: planId, user_id: user.id }).catch(() => {});
+    }
   }, [planId, user]);
 
   return (

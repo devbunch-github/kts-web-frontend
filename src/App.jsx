@@ -4,6 +4,7 @@ import ContactPage from "./pages/ContactPage";
 import PlansPage from "./pages/subscription/PlansPage";
 import PaymentPage from "./pages/subscription/PaymentPage";
 import ConfirmPage from "./pages/subscription/ConfirmPage";
+import SetPasswordPage from "./pages/subscription/SetPasswordPage";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/subscription" element={<PlansPage />} />
         <Route path="/subscription/payment" element={<PaymentPage />} />
         <Route path="/subscription/confirm" element={<ConfirmPage />} />
+        <Route path="/subscription/set-password" element={<SetPasswordPage />} />
       </Routes>
     </BrowserRouter>
   );
