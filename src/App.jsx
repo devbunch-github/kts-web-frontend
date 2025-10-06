@@ -5,6 +5,7 @@ import PlansPage from "./pages/subscription/PlansPage";
 import PaymentPage from "./pages/subscription/PaymentPage";
 import ConfirmPage from "./pages/subscription/ConfirmPage";
 import SetPasswordPage from "./pages/subscription/SetPasswordPage";
+import PaymentCancelled from "./pages/subscription/PaymentCancelled";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/subscription/payment" element={<PaymentPage />} />
         <Route path="/subscription/confirm" element={<ConfirmPage />} />
         <Route path="/subscription/set-password" element={<SetPasswordPage />} />
+        <Route path="/payment-cancelled" element={<PaymentCancelled />} />
       </Routes>
     </BrowserRouter>
   );

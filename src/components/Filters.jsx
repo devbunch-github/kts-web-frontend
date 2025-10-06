@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { http } from "../api/http"; // to fetch /api/services
+import axios from "../api/http"; // to fetch /api/services
 
 export default function Filters({onChange}){
   const [category,setCategory]=useState("");
   const [services,setServices]=useState([]);
   const [allServices,setAllServices]=useState([]);
 
-  useEffect(()=>{ http.get("/api/services").then(r=>setAllServices(r.data?.data ?? r.data ?? []));},[]);
+  useEffect(()=>{ axios.get("/api/services").then(r=>setAllServices(r.data?.data ?? r.data ?? []));},[]);
 
   const toggle=(id)=> setServices(prev=> prev.includes(id)? prev.filter(x=>x!==id) : [...prev,id]);
   const apply=()=> onChange?.({ category, service_ids: services.join(",") });

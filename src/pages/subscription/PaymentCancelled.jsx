@@ -2,7 +2,7 @@ import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { useNavigate } from "react-router-dom";
 
-export default function ConfirmPage() {
+export default function PaymentCancelled() {
   const nav = useNavigate();
 
   return (
@@ -15,21 +15,18 @@ export default function ConfirmPage() {
       >
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 container-7xl flex h-full items-end px-4 pb-8">
-          <h1 className="text-3xl font-semibold text-white">Subscription</h1>
+          <h1 className="text-3xl font-semibold text-white">Payment Cancelled</h1>
         </div>
       </section>
 
       <section className="container-7xl section-pad">
         <div className="mx-auto max-w-2xl rounded-2xl border bg-white p-10 text-center shadow">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-300/70 text-white text-xl font-bold">
-            ✓
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-400/70 text-white text-xl font-bold">
+            ✕
           </div>
-          <h2 className="mt-4 text-lg font-semibold">
-            Your subscription is being confirmed
-          </h2>
+          <h2 className="mt-4 text-lg font-semibold">Payment Cancelled</h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Once Stripe or PayPal confirms your payment, your subscription will
-            become active.
+            Your payment was cancelled or not completed. You can try again anytime.
           </p>
           <button
             onClick={() => nav("/")}

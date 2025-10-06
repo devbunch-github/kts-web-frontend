@@ -54,7 +54,7 @@ export default function SignupModal({ open, onClose, onSwitch }) {
           country: f.country,
         });
 
-        navigate(`/subscription/payment?plan=${f.plan_id}&user_id=${newUser.id}`);
+        navigate(`/subscription/payment?plan=${f.plan_id}&user=${newUser.id}`);
         onClose();
       } catch (err) {
         setError("This email is already registered.");
