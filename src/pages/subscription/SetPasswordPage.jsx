@@ -1,100 +1,171 @@
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { setPassword, apiLogin } from "../../api/publicApi";
-import { useAuth } from "../../context/AuthContext";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import axios from "axios";
 
 export default function SetPasswordPage() {
-  const [search] = useSearchParams();
-  const nav = useNavigate();
-  const { user, login } = useAuth();
-
-  const userId = search.get("user_id") || user?.id;
-  const [password, setPass] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    password: "",
+    confirm_password: "",
+  });
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const submit = async () => {
-    if (!password || !confirm) {
-      setError("Please enter and confirm your password.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
-    }
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const userId = searchParams.get("user_id");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError("");
-    setLoading(true);
+
+    if (!userId) {
+      setError("Missing user ID. Please reopen your activation link.");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (form.password !== form.confirm_password) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     try {
-      const res = await setPassword({
-        user_id: userId,
-        password,
-        password_confirmation: confirm,
-      });
+      setLoading(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/set-password`,
+        {
+          user_id: userId,
+          password: form.password,
+          password_confirmation: form.confirm_password,
+        }
+      );
 
-      if (!res?.user) throw new Error("Invalid response from server");
+      if (res.data.ok || res.status === 200) {
+        setSuccess(true);
+        setForm({ password: "", confirm_password: "" });
 
-      // auto-login user
-      const loginRes = await apiLogin({
-        email: res.user.email,
-        password,
-      });
+        // ✅ Save user session
+        if (res.data.user) {
+          localStorage.setItem("apptlive_user", JSON.stringify(res.data.user));
+          window.dispatchEvent(new Event("user-login"));
+        }
 
-      login(loginRes.user);
-      nav(`/subscription/confirm?user_id=${userId}`);
-    } catch (e) {
-      console.error(e);
-      setError("Something went wrong. Please try again.");
+        // Redirect after short delay
+        setTimeout(() => {
+          navigate("/subscription/confirm");
+        }, 2500);
+      } else {
+        setError(res.data.message || "Unexpected server response.");
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        "Something went wrong. Please try again.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!userId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <p className="text-gray-700">Invalid session. Please sign up again.</p>
-      </div>
-    );
-  }
+  // ✅ redirect user to confirm page after 2.5s of success
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        navigate("/subscription/confirm");
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [success, navigate]);
 
   return (
-    <div>
-      <Header />
-      <div className="container-7xl section-pad">
-        <div className="mx-auto max-w-md border p-6 rounded-xl shadow">
-          <h2 className="text-lg font-semibold mb-4">Set Your Password</h2>
+    <div className="bg-white pt-[100px] min-h-screen flex flex-col items-center text-[#1b1b1b]">
+      {/* Hero */}
+      <section className="w-full max-w-[1280px] text-center mb-10">
+        <h1 className="text-[32px] font-semibold text-[#1b1b1b]">Set Your Password</h1>
+        <p className="text-[15px] text-[#6b6b6b] mt-2">
+          Secure your account to continue using{" "}
+          <span className="text-[#b97979] font-medium">appt.live</span>
+        </p>
+      </section>
 
-          {error && <div className="bg-red-100 text-red-600 p-2 mb-3 rounded">{error}</div>}
+      {/* Card */}
+      <div className="w-full max-w-[480px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] border border-[#f0f0f0] rounded-2xl p-8 text-left">
+        {success ? (
+          <div className="text-center py-6 animate-fadeIn">
+            <div className="flex justify-center mb-3">
+              <div className="h-12 w-12 bg-[#c98383]/10 text-[#c98383] rounded-full flex items-center justify-center text-2xl">
+                ✓
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-[#1b1b1b] mb-1">
+              Password Set Successfully!
+            </h3>
+            <p className="text-sm text-[#666]">
+              Redirecting you to confirmation page...
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded-md bg-red-50 border border-red-400 text-red-600 px-3 py-2 text-sm">
+                {error}
+              </div>
+            )}
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full border p-2 mb-3 rounded"
-            value={password}
-            onChange={(e) => setPass(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            className="w-full border p-2 mb-3 rounded"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
+            <div>
+              <label className="block text-[14px] font-medium text-[#444] mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className="w-full rounded-md border border-[#ddd] px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0"
+                required
+              />
+            </div>
 
-          <button
-            disabled={loading}
-            onClick={submit}
-            className="w-full bg-rose-500 text-white py-2 rounded hover:bg-rose-600 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Save Password"}
-          </button>
-        </div>
+            <div>
+              <label className="block text-[14px] font-medium text-[#444] mb-1">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                name="confirm_password"
+                value={form.confirm_password}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                className="w-full rounded-md border border-[#ddd] px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-md text-white font-medium transition-all ${
+                loading
+                  ? "bg-[#c98383]/70 cursor-not-allowed"
+                  : "bg-[#c98383] hover:bg-[#b97474] active:scale-[0.98]"
+              }`}
+            >
+              {loading ? "Saving..." : "Save Password"}
+            </button>
+          </form>
+        )}
       </div>
-      <Footer />
     </div>
   );
 }
