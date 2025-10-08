@@ -1,73 +1,52 @@
+import LikeButton from "./LikeButton";
+
 export default function BeauticianCard({ item }) {
-  // expected item shape: { id, name, location, rating, reviews, cover_url }
   const rating = Number(item?.rating ?? 0);
   const reviews = Number(item?.reviews ?? item?.reviews_count ?? 0);
 
   return (
     <article
-      className="
-        group relative overflow-hidden rounded-2xl
-        border border-neutral-200 bg-white
-        shadow-[0_6px_18px_rgba(0,0,0,0.06)]
-        transition-shadow hover:shadow-[0_10px_26px_rgba(0,0,0,0.09)]
-      "
+      className="group relative overflow-hidden rounded-[20px] border border-[#f0f0f0] bg-white 
+                 shadow-[0_6px_20px_rgba(0,0,0,0.06)] 
+                 transition-all duration-300 hover:shadow-[0_10px_28px_rgba(0,0,0,0.1)]"
       role="listitem"
     >
-      {/* Media */}
-      <div className="relative">
-        <div className="mx-5 mt-5 overflow-hidden rounded-xl">
-          {item?.cover_url ? (
-            <img
-              src={item.cover_url}
-              alt={item.name}
-              className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-            />
-          ) : (
-            <div className="h-48 w-full bg-neutral-100" />
-          )}
-        </div>
+      {/* ─── Media ───────────────────────────────────── */}
+      <div className="relative h-[220px] w-full overflow-hidden">
+        <img
+          src={item?.cover_url || item?.image || "/images/hero-3.png"}
+          alt={item?.name || "Beautician"}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+        />
 
-        {/* Heart (save) */}
-        <button
-          aria-label="Save"
-          className="
-            absolute right-5 top-5
-            grid h-8 w-8 place-items-center
-            rounded-full bg-orange-400 text-white
-            shadow ring-1 ring-orange-300/70
-            transition hover:bg-orange-500
-          "
-        >
-          ♥
-        </button>
+        {/* ─── Like / Heart Button ─────────────────────── */}
+        <LikeButton />
       </div>
 
-      {/* Content */}
-      <div className="px-5 pb-5 pt-3">
-        <h3 className="text-[16px] font-semibold leading-snug text-neutral-900">
-          {item?.name}
+      {/* ─── Content ─────────────────────────────────── */}
+      <div className="px-6 pt-4 pb-6">
+        <h3 className="text-[17px] font-semibold text-[#1b1b1b] leading-snug truncate">
+          {item?.name ?? "Salon Name"}
         </h3>
 
-        {/* Location */}
-        <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-neutral-500">
+        <div className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[#7a7a7a]">
           <svg
             viewBox="0 0 20 20"
-            className="h-[14px] w-[14px] text-neutral-400"
+            className="h-[15px] w-[15px] text-[#b98989]"
             aria-hidden="true"
           >
             <path
-              d="M10 2.5a5.5 5.5 0 0 0-5.5 5.5c0 3.6 5.5 9.5 5.5 9.5S15.5 11.6 15.5 8A5.5 5.5 0 0 0 10 2.5Zm0 7.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"
+              d="M10 2.5a5.5 5.5 0 0 0-5.5 5.5c0 3.6 5.5 9.5 5.5 9.5s5.5-5.9 5.5-9.5A5.5 5.5 0 0 0 10 2.5Zm0 7.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"
               fill="currentColor"
             />
           </svg>
           <span className="truncate">{item?.location ?? "—"}</span>
         </div>
 
-        {/* Rating */}
-        <div className="mt-1.5 flex items-center gap-1 text-[13px]">
-          <span className="text-amber-500">★</span>
-          <span className="text-neutral-800 font-medium">{rating}</span>
-          <span className="text-orange-500">({reviews})</span>
+        <div className="mt-2 flex items-center gap-1 text-[14px]">
+          <span className="text-[#ffc107]">★</span>
+          <span className="font-medium text-[#1b1b1b]">{rating}</span>
+          <span className="text-[#c98383]">({reviews})</span>
         </div>
       </div>
     </article>

@@ -7,27 +7,31 @@ import { useEffect, useState } from "react";
 import { getBeauticians } from "../api/publicApi";
 
 export default function HomePage(){
-  const [items,setItems]=useState([]); const [loading,setLoading]=useState(true);
+  const [items,setItems]=useState([]); 
+  const [loading,setLoading]=useState(true);
 
   const load=async(filters={})=>{
     setLoading(true);
     try{
       const r=await getBeauticians(filters);
-      setItems(r.data ?? r); // handle both resource collection or plain array
+      setItems(r.data ?? r);
     }finally{ setLoading(false); }
   };
+
   useEffect(()=>{ load(); },[]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen bg-white">
       <Header/>
       <Hero/>
 
-      {/* Explore Beauticians */}
+      {/* Explore section */}
       <section className="section-pad">
         <div className="container-7xl">
           <div className="text-center">
-            <h2 className="font-semibold text-neutral-900 tracking-tight text-[22px] sm:text-[24px] md:text-[28px]">Explore Beauticians</h2>
+            <h2 className="text-[28px] font-semibold tracking-tight text-neutral-900 md:text-[32px]">
+              Explore Beauticians
+            </h2>
             <p className="mx-auto mt-2 max-w-[720px] text-[13.5px] leading-[1.7] text-neutral-600">
               Discover top-rated professionals near you. Filter by category and services to book instantly.
             </p>
@@ -36,8 +40,8 @@ export default function HomePage(){
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-[260px,1fr]">
             <Filters onChange={load}/>
             {loading ? (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {[...Array(8)].map((_,i)=>(
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_,i)=>(
                   <div key={i} className="h-[260px] rounded-2xl border bg-white shadow-sm">
                     <div className="h-40 w-full rounded-t-2xl bg-neutral-100" />
                     <div className="space-y-2 p-4">

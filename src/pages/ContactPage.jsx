@@ -1,7 +1,5 @@
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import { postContact } from "../api/publicApi";
 import { useState } from "react";
+import axios from "axios";
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -13,205 +11,228 @@ export default function ContactPage() {
     message: "",
     agree: false,
   });
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
 
-  const submit = async (e) => {
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState({ loading: false, success: null, message: "" });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccess("");
-    setError("");
-
-    // frontend validation
-    if (!form.first_name || !form.last_name || !form.email || !form.message) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    if (!form.agree) {
-      setError("You must agree to our Terms of use and Privacy Policy.");
-      return;
-    }
+    setStatus({ loading: true, success: null, message: "" });
+    setErrors({});
 
     try {
-      const r = await postContact({ ...form, agree: !!form.agree });
-      setSuccess(r.message || "Thanks! We’ll get back to you soon.");
-      setForm({
-        first_name: "",
-        last_name: "",
-        email: "",
-        phone_code: "UK",
-        phone: "",
-        message: "",
-        agree: false,
-      });
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/contact`, form);
+      if (res.data?.ok) {
+        setStatus({ loading: false, success: true, message: res.data.message });
+        // Reset form
+        setForm({
+          first_name: "",
+          last_name: "",
+          email: "",
+          phone_code: "UK",
+          phone: "",
+          message: "",
+          agree: false,
+        });
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Something went wrong. Please try again later."
-      );
+      setStatus({ loading: false, success: false, message: "Please correct the errors below." });
+      if (err.response?.status === 422) {
+        setErrors(err.response.data.errors || {});
+      } else {
+        setErrors({});
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-
-      {/* Hero */}
-      <section
-        className="relative h-[260px] md:h-[320px] bg-cover bg-center"
-        style={{ backgroundImage: "url(/images/hero-1.jpg)" }}
-      >
+    <div className="bg-white text-[#1b1b1b] min-h-screen">
+      {/* ─── Hero Section ───────────────────────────── */}
+      <section className="relative h-[420px] w-full overflow-hidden">
+        <img
+          src="/images/hero-2.png"
+          alt="Contact banner"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 container-7xl flex h-full items-end px-4 pb-8">
-          <h1 className="text-3xl md:text-4xl font-semibold text-white">
-            Contact Us
-          </h1>
+        <div className="relative flex h-full flex-col items-center justify-center text-white">
+          <h1 className="text-[36px] font-semibold tracking-tight">Contact Us</h1>
         </div>
       </section>
 
-      {/* Form */}
-      <section className="container-7xl section-pad">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="text-rose-400 text-sm font-medium">Contact us</div>
-          <h2 className="mt-2 text-2xl md:text-3xl font-semibold">
-            Get in touch
-          </h2>
-          <p className="mt-2 text-sm text-neutral-600">
-            We’d love to hear from you. Please fill out this form.
-          </p>
+      {/* ─── Contact Form Section ───────────────────── */}
+      <section className="mx-auto max-w-[640px] px-4 py-20 text-center">
+        <p className="text-[15px] text-[#b97979] font-medium">Contact us</p>
+        <h2 className="mt-1 text-[28px] font-semibold text-[#1b1b1b]">Get in touch</h2>
+        <p className="mt-3 text-[15px] text-[#6b6b6b]">
+          We’d love to hear from you. Please fill out this form.
+        </p>
 
-          {error && (
-            <div className="mt-4 rounded-lg bg-red-50 border border-red-400 px-4 py-2 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-400 px-4 py-2 text-emerald-700 text-sm">
-              {success}
-            </div>
-          )}
-        </div>
-
-        <form
-          onSubmit={submit}
-          className="mx-auto mt-8 w-full max-w-2xl space-y-4"
-        >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="First name"
-              value={form.first_name}
-              onChange={(v) => setForm((s) => ({ ...s, first_name: v }))}
-              required
-            />
-            <Input
-              label="Last name"
-              value={form.last_name}
-              onChange={(v) => setForm((s) => ({ ...s, last_name: v }))}
-              required
-            />
+        {/* Status message */}
+        {status.message && (
+          <div
+            className={`mt-6 mb-6 rounded-md px-4 py-3 text-[14px] ${
+              status.success
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-rose-50 text-rose-700 border border-rose-200"
+            }`}
+          >
+            {status.message}
           </div>
-          <Input
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(v) => setForm((s) => ({ ...s, email: v }))}
-            required
-          />
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5 text-left">
+          {/* Name fields */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-[13px] font-medium text-[#444]">
+                First name *
+              </label>
+              <input
+                type="text"
+                name="first_name"
+                value={form.first_name}
+                onChange={handleChange}
+                placeholder="First name"
+                className={`w-full rounded-md border ${
+                  errors.first_name ? "border-rose-400" : "border-[#d9d9d9]"
+                } px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0`}
+              />
+              {errors.first_name && (
+                <p className="mt-1 text-[13px] text-rose-600">{errors.first_name[0]}</p>
+              )}
+            </div>
+            <div>
+              <label className="mb-1 block text-[13px] font-medium text-[#444]">
+                Last name
+              </label>
+              <input
+                type="text"
+                name="last_name"
+                value={form.last_name}
+                onChange={handleChange}
+                placeholder="Last name"
+                className={`w-full rounded-md border ${
+                  errors.last_name ? "border-rose-400" : "border-[#d9d9d9]"
+                } px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0`}
+              />
+              {errors.last_name && (
+                <p className="mt-1 text-[13px] text-rose-600">{errors.last_name[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="mb-1 block text-[13px] font-medium text-[#444]">
+              Email *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              className={`w-full rounded-md border ${
+                errors.email ? "border-rose-400" : "border-[#d9d9d9]"
+              } px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0`}
+            />
+            {errors.email && <p className="mt-1 text-[13px] text-rose-600">{errors.email[0]}</p>}
+          </div>
 
           {/* Phone */}
           <div>
-            <label className="mb-1 block text-sm text-neutral-700">
+            <label className="mb-1 block text-[13px] font-medium text-[#444]">
               Phone number
             </label>
-            <div className="flex gap-2">
+            <div
+              className={`flex items-center rounded-md border ${
+                errors.phone ? "border-rose-400" : "border-[#d9d9d9]"
+              } overflow-hidden`}
+            >
               <select
-                className="w-28 rounded-lg border px-3 py-2 text-sm"
+                name="phone_code"
                 value={form.phone_code}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, phone_code: e.target.value }))
-                }
+                onChange={handleChange}
+                className="h-[45px] border-none bg-transparent pl-4 pr-2 text-[15px] text-[#444] focus:outline-none focus:ring-0"
               >
                 <option>UK</option>
                 <option>US</option>
-                <option>PK</option>
+                <option>CA</option>
               </select>
               <input
-                className="flex-1 rounded-lg border px-3 py-2 text-sm"
-                placeholder="+44 (555) 000-0000"
+                type="tel"
+                name="phone"
                 value={form.phone}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, phone: e.target.value }))
-                }
+                onChange={handleChange}
+                placeholder="+44 (555) 000-0000"
+                className="w-full border-none bg-transparent px-3 py-2.5 text-[15px] focus:outline-none focus:ring-0"
               />
             </div>
+            {errors.phone && <p className="mt-1 text-[13px] text-rose-600">{errors.phone[0]}</p>}
           </div>
 
-          <TextArea
-            label="Message"
-            rows={5}
-            value={form.message}
-            onChange={(v) => setForm((s) => ({ ...s, message: v }))}
-            required
-          />
+          {/* Message */}
+          <div>
+            <label className="mb-1 block text-[13px] font-medium text-[#444]">Message</label>
+            <textarea
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              rows="4"
+              className={`w-full rounded-md border ${
+                errors.message ? "border-rose-400" : "border-[#d9d9d9]"
+              } px-4 py-2.5 text-[15px] focus:border-[#c98383] focus:ring-0`}
+            />
+            {errors.message && (
+              <p className="mt-1 text-[13px] text-rose-600">{errors.message[0]}</p>
+            )}
+          </div>
 
-          <label className="flex items-center gap-2 text-sm text-neutral-700">
+          {/* Terms checkbox */}
+          <div className="flex items-start gap-2 text-[14px] text-[#6b6b6b] leading-snug">
             <input
               type="checkbox"
+              name="agree"
               checked={form.agree}
-              onChange={(e) => setForm((s) => ({ ...s, agree: e.target.checked }))}
+              onChange={handleChange}
+              className="mt-[3px] h-[16px] w-[16px] accent-[#c98383]"
             />
-            Do you agree to our{" "}
-            <span className="text-rose-500 underline decoration-dotted">
-              Terms of use
-            </span>{" "}
-            and{" "}
-            <span className="text-rose-500 underline decoration-dotted">
-              Privacy Policy
+            <span>
+              Do you agree to our{" "}
+              <a href="#" className="text-[#c98383] underline hover:text-[#b97474]">
+                Terms of use
+              </a>{" "}
+              and our{" "}
+              <a href="#" className="text-[#c98383] underline hover:text-[#b97474]">
+                Privacy Policy
+              </a>
+              ?
             </span>
-          </label>
+          </div>
 
-          <button className="w-full rounded-full bg-orange-500 py-3 text-white font-medium hover:bg-orange-600 transition">
-            Send message
+          {/* Submit button */}
+          <button
+            type="submit"
+            disabled={status.loading}
+            className={`mt-2 w-full rounded-md py-3 text-[15px] font-medium text-white transition-all ${
+              status.loading
+                ? "bg-[#c98383]/70 cursor-not-allowed"
+                : "bg-[#c98383] hover:bg-[#b97474] active:scale-[0.98]"
+            }`}
+          >
+            {status.loading ? "Sending..." : "Send message"}
           </button>
         </form>
       </section>
-
-      <Footer />
-    </div>
-  );
-}
-
-function Input({ label, value, onChange, type = "text", required = false }) {
-  return (
-    <div>
-      <label className="mb-1 block text-sm text-neutral-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      <input
-        type={type}
-        required={required}
-        className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-function TextArea({ label, value, onChange, rows = 4, required = false }) {
-  return (
-    <div>
-      <label className="mb-1 block text-sm text-neutral-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      <textarea
-        rows={rows}
-        required={required}
-        className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
     </div>
   );
 }
