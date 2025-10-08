@@ -7,55 +7,56 @@ export default function PaymentPage() {
   const planId = searchParams.get("plan");
   const userId = searchParams.get("user");
   const [plan, setPlan] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({ stripe: false, paypal: false });
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (planId) {
       getPlanById(planId)
         .then(setPlan)
-        .catch(() => {});
+        .catch(() => setError("Failed to load plan details."));
     }
   }, [planId]);
 
   const payWithStripe = async () => {
     if (!plan || !userId) return;
-    setLoading(true);
+    setLoading({ stripe: true, paypal: false });
+    setError("");
     try {
       const res = await createStripeSession({ plan_id: plan.id, user_id: userId });
       const redirectUrl = res?.checkoutUrl;
-
       if (redirectUrl) {
         window.location.href = redirectUrl;
       } else {
         console.error("Stripe checkout URL missing:", res);
-        alert("Unable to start Stripe checkout.");
+        setError("Unable to start Stripe checkout.");
       }
     } catch (err) {
       console.error(err);
-      alert("Stripe payment failed.");
+      setError("Stripe payment failed.");
     } finally {
-      setLoading(false);
+      setLoading({ stripe: false, paypal: false });
     }
   };
 
   const payWithPaypal = async () => {
     if (!plan || !userId) return;
-    setLoading(true);
+    setLoading({ stripe: false, paypal: true });
+    setError("");
     try {
       const res = await createPaypalOrder({ plan_id: plan.id, user_id: userId });
       const approvalUrl = res?.approvalUrl;
-
       if (approvalUrl) {
         window.location.href = approvalUrl;
       } else {
         console.error("PayPal approval URL missing:", res);
-        alert("Unable to start PayPal checkout.");
+        setError("Unable to start PayPal checkout.");
       }
     } catch (err) {
       console.error(err);
-      alert("PayPal payment failed.");
+      setError("PayPal payment failed.");
     } finally {
-      setLoading(false);
+      setLoading({ stripe: false, paypal: false });
     }
   };
 
@@ -142,35 +143,69 @@ export default function PaymentPage() {
 
           {/* Footer */}
           <div className="border-t border-[#eee] px-6 py-5">
+            {error && (
+              <div className="mb-4 text-[14px] text-red-600 bg-red-50 border border-red-300 rounded-md px-3 py-2">
+                {error}
+              </div>
+            )}
+
             <p className="text-[15px] mb-4 font-medium text-[#1b1b1b]">
               Choose Payment Method
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
+              {/* Stripe Button */}
               <button
                 onClick={payWithStripe}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 w-full rounded-md bg-[#635bff] py-3 text-white font-medium text-[15px] transition-all hover:bg-[#5146e1]"
+                disabled={loading.stripe || loading.paypal}
+                className={`flex items-center justify-center gap-2 w-full rounded-md py-3 text-[15px] font-medium text-white transition-all ${
+                  loading.stripe || loading.paypal
+                    ? "bg-[#635bff]/70 cursor-not-allowed"
+                    : "bg-[#635bff] hover:bg-[#5248f6]"
+                }`}
               >
-                <img
-                  src="/images/icons/stripe-btn.png"
-                  alt="Pay with Stripe"
-                  className="h-[20px] w-[20px]"
-                />
-                Pay with Stripe
+                {loading.stripe ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src="/images/icons/stripe-btn.png"
+                      alt="Pay with Stripe"
+                      className="h-[20px] w-[20px]"
+                    />
+                    Pay with Stripe
+                  </>
+                )}
               </button>
 
+              {/* PayPal Button */}
               <button
                 onClick={payWithPaypal}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 w-full rounded-md bg-[#ffc439] py-3 text-[#111] font-medium text-[15px] transition-all hover:bg-[#e8b627]"
+                disabled={loading.stripe || loading.paypal}
+                className={`flex items-center justify-center gap-2 w-full rounded-md py-3 text-[15px] font-medium transition-all ${
+                  loading.stripe || loading.paypal
+                    ? "bg-[#ffc439]/70 cursor-not-allowed"
+                    : "bg-[#ffc439] hover:bg-[#e8b627] text-[#111]"
+                }`}
               >
-                <img
-                  src="/images/icons/paypal-btn.png"
-                  alt="Pay with PayPal"
-                  className="h-[20px] w-[20px]"
-                />
-                Pay with PayPal
+                {loading.paypal ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-[#111] border-t-transparent rounded-full"></span>
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src="/images/icons/paypal-btn.png"
+                      alt="Pay with PayPal"
+                      className="h-[20px] w-[20px]"
+                    />
+                    Pay with PayPal
+                  </>
+                )}
               </button>
             </div>
           </div>

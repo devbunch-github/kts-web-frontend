@@ -36,6 +36,11 @@ export const preRegister = (payload) =>
 export const setPassword = (payload) =>
   axios.post("/api/auth/set-password", payload).then((r) => r.data);
 
+// Check email availability
+export const checkEmail = (email) =>
+  axios.post("/api/auth/check-email", { email }).then((r) => r.data);
+
+
 // Stripe
 export const createStripeIntent = (payload) =>
   axios.post("/api/payment/stripe/create-intent", payload).then((r) => r.data);

@@ -14,7 +14,7 @@ export default function MainLayout() {
       </main>
 
       {/* Footer always at bottom */}
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }
