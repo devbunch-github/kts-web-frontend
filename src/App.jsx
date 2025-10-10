@@ -10,22 +10,38 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminIncomePage from "./pages/admin/AdminIncomePage";
 import SetPasswordPage from "./pages/subscription/SetPasswordPage";
 import PaymentCancelled from "./pages/subscription/PaymentCancelled";
+import IncomeIndex from "./pages/income/IncomeIndex";
+import IncomeForm from "./pages/income/IncomeForm";
+import IncomeView from "./pages/income/IncomeView";
+import DashboardLayout from "./layouts/DashboardLayout";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public + Subscription Routes */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/subscription" element={<PlansPage />} />
           <Route path="/subscription/payment" element={<PaymentPage />} />
           <Route path="/subscription/confirm" element={<ConfirmPage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-         <Route path="/admin/income" element={<AdminIncomePage />} />
-        <Route path="/subscription/set-password" element={<SetPasswordPage />} />
+          <Route path="/subscription/set-password" element={<SetPasswordPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelled />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/admin/income" element={<AdminIncomePage />} />
+
+        {/* Business Dashboard Routes */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<IncomeIndex />} />
+          <Route path="income" element={<IncomeIndex />} />
+          <Route path="income/new" element={<IncomeForm />} />
+          <Route path="income/:id/edit" element={<IncomeForm />} />
+          <Route path="income/:id" element={<IncomeView />} />
         </Route>
       </Routes>
     </BrowserRouter>
