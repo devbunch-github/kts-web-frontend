@@ -6,12 +6,13 @@ import axios from "../../api/http";
 export default function IncomeIndex() {
   const [incomes, setIncomes] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
+  const [filters, setFilters] = useState({ start_date: "", end_date: "" });
   const [loading, setLoading] = useState(true);
 
   const fetchPage = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await listIncome({ page });
+      const res = await listIncome({ ...filters, page });
       const items = Array.isArray(res) ? res : res.data ?? [];
       setIncomes(items);
       setMeta({
@@ -39,11 +40,34 @@ export default function IncomeIndex() {
     }
   };
 
+  const onFilterChange = (k) => (e) =>
+    setFilters({ ...filters, [k]: e.target.value });
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams(filters).toString();
+      const res = await axios.get(`/api/income/export/pdf?${params}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `income_report_${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf`;
+      link.click();
+    } catch (e) {
+      console.error("PDF export failed", e);
+      alert("Failed to export report. Please try again.");
+    }
+  };
+
   return (
     <div className="p-6">
-      {/* Heading + Add Button */}
+      {/* Heading */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[28px] font-semibold text-[#222]">Income/Sales</h1>
+        <h1 className="text-[28px] font-semibold text-[#222]">Income / Sales</h1>
         <Link
           to="/dashboard/income/new"
           className="rounded-2xl bg-[#c98383] px-6 py-2.5 text-white font-semibold hover:opacity-90"
@@ -52,18 +76,25 @@ export default function IncomeIndex() {
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center mb-4">
+      {/* Filters + Report */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <input
           type="date"
+          value={filters.start_date}
+          onChange={onFilterChange("start_date")}
           className="h-[40px] rounded-xl border border-[#e8e2e2] bg-white px-3"
         />
         <input
           type="date"
+          value={filters.end_date}
+          onChange={onFilterChange("end_date")}
           className="h-[40px] rounded-xl border border-[#e8e2e2] bg-white px-3"
         />
-        <button className="h-[40px] rounded-xl bg-[#c98383]/80 px-4 text-white">
-          Generate Report
+        <button
+          onClick={handleExport}
+          className="h-[40px] rounded-xl bg-[#c98383]/90 px-4 text-white hover:opacity-90"
+        >
+          Generate Report (PDF)
         </button>
 
         <div className="ml-auto">
@@ -80,10 +111,10 @@ export default function IncomeIndex() {
           <thead className="bg-[#d4a1a1] text-white">
             <tr>
               <th className="px-6 py-3 text-left font-medium">Date</th>
-              <th className="px-6 py-3 text-left font-medium">Customer Name</th>
+              <th className="px-6 py-3 text-left font-medium">Customer</th>
               <th className="px-6 py-3 text-left font-medium">Category</th>
               <th className="px-6 py-3 text-left font-medium">Service</th>
-              <th className="px-6 py-3 text-left font-medium">Income Amount</th>
+              <th className="px-6 py-3 text-left font-medium">Amount (£)</th>
               <th className="px-6 py-3 text-left font-medium">Action</th>
             </tr>
           </thead>
@@ -113,16 +144,20 @@ export default function IncomeIndex() {
                       ? new Date(i.PaymentDateTime).toLocaleDateString()
                       : "—"}
                   </td>
-                  <td className="px-6 py-4">{i.Customer?.Name ?? i.customer?.Name ?? "—"}</td>
-                  <td className="px-6 py-4">{i.Category?.Name ?? i.category?.Name ?? "—"}</td>
-                  <td className="px-6 py-4">{i.Service?.Name ?? i.service?.Name ?? "—"}</td>
-
+                  <td className="px-6 py-4">
+                    {i.Customer?.Name ?? i.customer?.Name ?? "—"}
+                  </td>
+                  <td className="px-6 py-4">
+                    {i.Category?.Name ?? i.category?.Name ?? "—"}
+                  </td>
+                  <td className="px-6 py-4">
+                    {i.Service?.Name ?? i.service?.Name ?? "—"}
+                  </td>
                   <td className="px-6 py-4 font-medium">
                     £ {Number(i.Amount).toFixed(2)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-5 text-[15px]">
-                      {/* ✏️ Edit */}
                       <Link
                         to={`/dashboard/income/${i.Id}/edit`}
                         title="Edit"
@@ -132,7 +167,6 @@ export default function IncomeIndex() {
                         <span>Edit</span>
                       </Link>
 
-                      {/* 🗑 Delete */}
                       <button
                         onClick={() => handleDelete(i.Id)}
                         title="Delete"
@@ -142,7 +176,6 @@ export default function IncomeIndex() {
                         <span>Delete</span>
                       </button>
 
-                      {/* 👁 View */}
                       <Link
                         to={`/dashboard/income/${i.Id}`}
                         title="View"
