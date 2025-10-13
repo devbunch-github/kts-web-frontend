@@ -7,6 +7,7 @@ export default function DashboardLayout() {
 
   const menu = [
     { name: "Dashboard", path: "/dashboard/income", icon: "📊" },
+    { name: "Income", path: "/dashboard/income" },
     { name: "Expense", path: "/dashboard/expense" },
     { name: "Service", path: "/dashboard/service" },
     { name: "Customer", path: "/dashboard/customer" },

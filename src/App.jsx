@@ -14,6 +14,10 @@ import IncomeIndex from "./pages/income/IncomeIndex";
 import IncomeForm from "./pages/income/IncomeForm";
 import IncomeView from "./pages/income/IncomeView";
 import DashboardLayout from "./layouts/DashboardLayout";
+import ExpenseIndex from "./pages/expenses/ExpenseIndex";
+import ExpenseForm from "./pages/expenses/ExpenseForm";
+import ExpenseView from "./pages/expenses/ExpenseView";
+
 
 export default function App() {
   return (
@@ -37,12 +41,22 @@ export default function App() {
 
         {/* Business Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
+          {/* Default */}
           <Route index element={<IncomeIndex />} />
+
+          {/* Income */}
           <Route path="income" element={<IncomeIndex />} />
           <Route path="income/new" element={<IncomeForm />} />
           <Route path="income/:id/edit" element={<IncomeForm />} />
           <Route path="income/:id" element={<IncomeView />} />
+
+          {/* Expense */}
+          <Route path="expense" element={<ExpenseIndex />} />
+          <Route path="expense/new" element={<ExpenseForm />} />
+          <Route path="expense/:id/edit" element={<ExpenseForm />} />
+          <Route path="expense/:id" element={<ExpenseView />} />
         </Route>
+
       </Routes>
     </BrowserRouter>
   );
