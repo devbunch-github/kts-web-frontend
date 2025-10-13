@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { getAdminDashboardData } from "../../api/publicApi";
 import AdminHeader from "../../components/layout/SuperAdminHeader";
 import AdminSidebar from "../../components/layout/SuperAdminSidebar";
 import AdminFooter from "../../components/layout/SuperAdminFooter";
@@ -6,44 +7,37 @@ import AdminFooter from "../../components/layout/SuperAdminFooter";
 const AdminDashboardPage = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [search, setSearch] = useState("");
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const tableData = [
-    {
-      id: 1,
-      name: "Octane",
-      email: "contact@octane.com",
-      smsPackage: "Active",
-      smsUsage: "700/1000",
-      subscription: "Pro Booking",
-    },
-    {
-      id: 2,
-      name: "Rhian Dodd",
-      email: "info@rhiandodd.com",
-      smsPackage: "Inactive",
-      smsUsage: "80/100",
-      subscription: "Starter",
-    },
-    {
-      id: 3,
-      name: "Siobhan",
-      email: "support@siobhan.com",
-      smsPackage: "Active",
-      smsUsage: "30/500",
-      subscription: "MTD Ready",
-    },
-  ];
+  // Fetch data from API
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await getAdminDashboardData();
+        if (res.success) {
+          setTableData(res.data);
+        }
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
+  // Filter data by search term
   const filteredData = useMemo(() => {
     const term = search.toLowerCase();
     if (!term) return tableData;
     return tableData.filter(
       (item) =>
-        item.name.toLowerCase().includes(term) ||
-        item.email.toLowerCase().includes(term) ||
-        item.subscription.toLowerCase().includes(term)
+        item.name?.toLowerCase().includes(term) ||
+        item.email?.toLowerCase().includes(term) ||
+        item.subscription?.toLowerCase().includes(term)
     );
-  }, [search]);
+  }, [search, tableData]);
 
   const getStatusBadge = (status) => {
     const base =
@@ -55,7 +49,7 @@ const AdminDashboardPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f5f4] flex flex-col font-[Inter]">
+    <div className="min-h-screen bg-[#f9f5f4] flex flex-col">
       <AdminHeader />
 
       <div className="flex flex-1 w-full max-w-[1400px] mx-auto">
@@ -155,10 +149,10 @@ const AdminDashboardPage = () => {
                       </td>
                       <td className="py-3">
                         <div className="flex flex-wrap gap-2">
-                          <button onClick={() => (window.location.href = "/admin/income")} className="bg-rose-500 text-white px-3 py-1.5 text-xs rounded-md hover:bg-rose-600 transition">
+                          <button onClick={() => (window.location.href = `/admin/income/${row.uid}`)} className="bg-rose-500 text-white px-3 py-1.5 text-xs rounded-md hover:bg-rose-600 transition">
                             View Income
                           </button>
-                          <button className="bg-rose-500 text-white px-3 py-1.5 text-xs rounded-md hover:bg-rose-600 transition">
+                          <button onClick={() => (window.location.href = `/admin/expense/${row.uid}`)} className="bg-rose-500 text-white px-3 py-1.5 text-xs rounded-md hover:bg-rose-600 transition">
                             View Expense
                           </button>
                           <button className="bg-rose-500 text-white px-3 py-1.5 text-xs rounded-md hover:bg-rose-600 transition">

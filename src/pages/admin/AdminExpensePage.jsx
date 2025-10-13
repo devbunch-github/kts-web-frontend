@@ -1,67 +1,71 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { getAdminIncome } from "../../api/publicApi";
+import { getAdminExpense } from "../../api/publicApi";
 import AdminHeader from "../../components/layout/SuperAdminHeader";
 import AdminSidebar from "../../components/layout/SuperAdminSidebar";
 import AdminFooter from "../../components/layout/SuperAdminFooter";
 
-const AdminIncomePage = () => {
-  const { id } = useParams(); // user id from route param
+const AdminExpensePage = () => {
+  const { id } = useParams();
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [incomeData, setIncomeData] = useState([]);
+  const [expenseData, setExpenseData] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch income data from API
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchExpense = async () => {
       try {
         setLoading(true);
-        const res = await getAdminIncome(id);
+        const res = await getAdminExpense(id);
         if (res.success) {
-          setIncomeData(res.data || []);
-          setUser(res.user || null);
+          setExpenseData(res.data);
+          setUser(res.user);
         }
       } catch (err) {
-        console.error("Error fetching income data:", err);
+        console.error("Error fetching expenses:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchExpense();
   }, [id]);
 
-  // Filter table data
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
-    let filteredData = incomeData;
+    let filteredData = expenseData;
 
     if (term) {
       filteredData = filteredData.filter(
         (item) =>
-          item.description.toLowerCase().includes(term) ||
+          item.supplier.toLowerCase().includes(term) ||
           item.payment_method.toLowerCase().includes(term)
       );
     }
 
-    // Date range filter
     if (startDate)
       filteredData = filteredData.filter(
-        (item) => new Date(item.payment_date.split("-").reverse().join("-")) >= new Date(startDate)
+        (item) =>
+          new Date(item.payment_date.split("-").reverse().join("-")) >=
+          new Date(startDate)
       );
+
     if (endDate)
       filteredData = filteredData.filter(
-        (item) => new Date(item.payment_date.split("-").reverse().join("-")) <= new Date(endDate)
+        (item) =>
+          new Date(item.payment_date.split("-").reverse().join("-")) <=
+          new Date(endDate)
       );
 
     return filteredData;
-  }, [search, startDate, endDate, incomeData]);
+  }, [search, startDate, endDate, expenseData]);
 
-  // Compute total income
-  const totalIncome = filtered.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+  const totalExpense = filtered.reduce(
+    (sum, row) => sum + parseFloat(row.amount || 0),
+    0
+  );
 
   return (
     <div className="min-h-screen bg-[#f9f5f4] flex flex-col font-[Inter]">
@@ -71,7 +75,7 @@ const AdminIncomePage = () => {
         <AdminSidebar />
 
         <main className="flex-1 p-6">
-          {/* Heading */}
+          {/* Header */}
           <div className="flex items-center gap-2 mb-6">
             <button
               onClick={() => window.history.back()}
@@ -89,17 +93,16 @@ const AdminIncomePage = () => {
               </svg>
             </button>
             <h1 className="text-xl font-semibold text-gray-800">
-              Dashboard Income View
+              Dashboard Expense View
             </h1>
           </div>
 
-          {/* User Info */}
+          {/* User */}
           <p className="text-sm text-gray-700 mb-4">
-            <span className="font-semibold">User:</span>{" "}
-            {user?.name ?? "Loading..."}
+            <span className="font-semibold">User:</span> {user?.name ?? "Loading..."}
           </p>
 
-          {/* Date Filter */}
+          {/* Date Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <div className="flex flex-col">
               <label className="text-xs text-gray-500 mb-1">Start Date</label>
@@ -121,10 +124,7 @@ const AdminIncomePage = () => {
               />
             </div>
 
-            <button
-              className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm hover:bg-gray-50 transition"
-              onClick={() => {}}
-            >
+            <button className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm hover:bg-gray-50 transition">
               Filter
               <svg
                 width="16"
@@ -143,15 +143,14 @@ const AdminIncomePage = () => {
             </button>
           </div>
 
-          {/* Total Income */}
+          {/* Total Expense */}
           <div className="text-lg font-semibold text-gray-800 mb-4">
-            Total Income:{" "}
-            <span className="text-rose-600">£{totalIncome.toFixed(2)}</span>
+            Total Expense:{" "}
+            <span className="text-rose-600">£{totalExpense.toFixed(2)}</span>
           </div>
 
-          {/* Table Card */}
+          {/* Table */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            {/* Table Controls */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-4">
               <div className="flex items-center gap-2 text-sm">
                 Show
@@ -193,7 +192,7 @@ const AdminIncomePage = () => {
               </div>
             </div>
 
-            {/* Table */}
+            {/* Table Data */}
             <div className="overflow-x-auto">
               {loading ? (
                 <p className="text-center py-6 text-gray-500">Loading...</p>
@@ -201,15 +200,9 @@ const AdminIncomePage = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-gray-600 border-b border-gray-200">
-                      <th className="py-3 text-left font-semibold">
-                        Description
-                      </th>
-                      <th className="py-3 text-left font-semibold">
-                        Payment Method
-                      </th>
-                      <th className="py-3 text-left font-semibold">
-                        Payment Date
-                      </th>
+                      <th className="py-3 text-left font-semibold">Supplier</th>
+                      <th className="py-3 text-left font-semibold">Payment Method</th>
+                      <th className="py-3 text-left font-semibold">Payment Date</th>
                       <th className="py-3 text-left font-semibold">Amount</th>
                     </tr>
                   </thead>
@@ -220,13 +213,9 @@ const AdminIncomePage = () => {
                           key={i}
                           className="border-b border-gray-100 hover:bg-rose-50/40 transition"
                         >
-                          <td className="py-3">{row.description}</td>
-                          <td className="py-3 text-gray-700">
-                            {row.payment_method}
-                          </td>
-                          <td className="py-3 text-gray-700">
-                            {row.payment_date}
-                          </td>
+                          <td className="py-3">{row.supplier}</td>
+                          <td className="py-3 text-gray-700">{row.payment_method}</td>
+                          <td className="py-3 text-gray-700">{row.payment_date}</td>
                           <td className="py-3 text-gray-800 font-medium">
                             £ {parseFloat(row.amount).toFixed(2)}
                           </td>
@@ -234,24 +223,14 @@ const AdminIncomePage = () => {
                       ))
                     ) : (
                       <tr>
-                        <td
-                          colSpan="4"
-                          className="text-center py-6 text-gray-500"
-                        >
-                          No records found
+                        <td colSpan="4" className="text-center py-6 text-gray-500">
+                          No expense records found
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               )}
-            </div>
-
-            {/* Pagination */}
-            <div className="flex justify-end items-center mt-4 text-sm text-gray-600">
-              <button className="px-2 py-1 hover:text-rose-600">&lt;</button>
-              <span className="mx-2">1</span>
-              <button className="px-2 py-1 hover:text-rose-600">&gt;</button>
             </div>
           </div>
         </main>
@@ -262,4 +241,4 @@ const AdminIncomePage = () => {
   );
 };
 
-export default AdminIncomePage;
+export default AdminExpensePage;
