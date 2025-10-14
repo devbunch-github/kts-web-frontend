@@ -1,12 +1,18 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createSmsPackage } from "../../api/publicApi";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  createSmsPackage,
+  updateSmsPackage,
+  getSmsPackageById,
+} from "../../api/publicApi";
 import AdminHeader from "../../components/layout/SuperAdminHeader";
 import AdminSidebar from "../../components/layout/SuperAdminSidebar";
 import AdminFooter from "../../components/layout/SuperAdminFooter";
 
 const AddSmsPackagePage = () => {
   const nav = useNavigate();
+  const { id } = useParams(); // if present → edit mode
+
   const [form, setForm] = useState({
     name: "",
     total_sms: "",
@@ -16,6 +22,30 @@ const AddSmsPackagePage = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const isEditMode = Boolean(id);
+
+    // If editing, fetch existing data
+  useEffect(() => {
+    if (isEditMode) {
+      const fetchData = async () => {
+        try {
+          const res = await getSmsPackageById(id);
+          if (res.success && res.data) {
+            setForm({
+              name: res.data.name || "",
+              total_sms: res.data.total_sms || "",
+              price: res.data.price || "",
+              description: res.data.description || "",
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching package", err);
+        }
+      };
+      fetchData();
+    }
+  }, [id]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -24,14 +54,25 @@ const AddSmsPackagePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
     try {
-      const res = await createSmsPackage(form);
+      let res;
+      if (isEditMode) {
+        res = await updateSmsPackage(id, form);
+      } else {
+        res = await createSmsPackage(form);
+      }
+
       if (res.success) {
-        setMessage("Package added successfully!");
+        setMessage(
+          isEditMode
+            ? "Package updated successfully!"
+            : "Package added successfully!"
+        );
         setTimeout(() => nav("/admin/sms-packages"), 1500);
       }
     } catch (err) {
-      console.error("Error adding package", err);
+      console.error("Error saving package", err);
       setMessage("Something went wrong, please try again.");
     } finally {
       setLoading(false);
@@ -64,7 +105,7 @@ const AddSmsPackagePage = () => {
               </svg>
             </button>
             <h1 className="text-xl font-semibold text-gray-800">
-              Add new Package
+              {isEditMode ? "Edit Package" : "Add new Package"}
             </h1>
           </div>
 
@@ -148,7 +189,13 @@ const AddSmsPackagePage = () => {
                 disabled={loading}
                 className="mt-2 px-6 py-2 text-sm bg-[#c57a7a] text-white rounded-md hover:bg-[#b46868] transition"
               >
-                {loading ? "Saving..." : "Save"}
+                {loading
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Saving..."
+                  : isEditMode
+                  ? "Save Changes"
+                  : "Save"}
               </button>
             </div>
           </form>

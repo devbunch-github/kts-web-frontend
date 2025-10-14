@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 const AdminSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSmsMenuOpen, setIsSmsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const linkClasses = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
@@ -10,6 +13,16 @@ const AdminSidebar = () => {
         ? "bg-rose-100 text-rose-700"
         : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
     }`;
+
+  // Automatically open SMS submenu if child route is active
+  React.useEffect(() => {
+    if (
+      location.pathname.includes("/admin/sms-subscriptions") ||
+      location.pathname.includes("/admin/sms-purchase-balance")
+    ) {
+      setIsSmsMenuOpen(true);
+    }
+  }, [location]);
 
   return (
     <>
@@ -87,24 +100,83 @@ const AdminSidebar = () => {
             Payment Settings
           </NavLink>
 
-          {/* SMS Package */}
-          <NavLink to="/admin/sms-packages" className={linkClasses}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="#a8626b"
-              strokeWidth="1.5"
+          {/* SMS Packages (Main + Dropdown) */}
+          <div>
+            <div
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer font-medium transition-colors ${
+                location.pathname.startsWith("/admin/sms")
+                  ? "bg-rose-100 text-rose-700"
+                  : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
+              }`}
+              onClick={() => {
+                navigate("/admin/sms-packages");
+                setIsSmsMenuOpen(!isSmsMenuOpen);
+              }}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8h18"
-              />
-            </svg>
-            SMS Package
-          </NavLink>
+              <span className="flex items-center gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="#a8626b"
+                  strokeWidth="1.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8h18"
+                  />
+                </svg>
+                SMS Packages
+              </span>
+              <svg
+                className={`h-4 w-4 transition-transform ${
+                  isSmsMenuOpen ? "rotate-180" : "rotate-0"
+                }`}
+                fill="none"
+                stroke="#a8626b"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 9l6 6 6-6"
+                />
+              </svg>
+            </div>
+
+            {/* Submenu */}
+            {isSmsMenuOpen && (
+              <div className="ml-6 mt-2 space-y-1">
+                <NavLink
+                  to="/admin/sms-subscriptions"
+                  className={({ isActive }) =>
+                    `block px-3 py-1.5 rounded-md text-sm font-medium ${
+                      isActive
+                        ? "bg-rose-100 text-rose-700"
+                        : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
+                    }`
+                  }
+                >
+                  SMS Subscription List
+                </NavLink>
+                <NavLink
+                  to="/admin/sms-purchase-balance"
+                  className={({ isActive }) =>
+                    `block px-3 py-1.5 rounded-md text-sm font-medium ${
+                      isActive
+                        ? "bg-rose-100 text-rose-700"
+                        : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
+                    }`
+                  }
+                >
+                  SMS Purchase Balance
+                </NavLink>
+              </div>
+            )}
+          </div>
 
           {/* Subscription */}
           <NavLink to="/admin/subscription" className={linkClasses}>

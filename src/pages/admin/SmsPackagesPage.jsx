@@ -34,9 +34,18 @@ const SmsPackagesPage = () => {
   }, [search, packages]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this package?")) return;
-    await deleteSmsPackage(id);
-    loadPackages();
+    if (!window.confirm("Are you sure you want to delete this package?")) return;
+    try {
+      const res = await deleteSmsPackage(id);
+      if (res.success) {
+        alert("Package deleted successfully!");
+        // reload list
+        loadPackages(); 
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete package. Please try again.");
+    }
   };
 
   return (
@@ -69,7 +78,7 @@ const SmsPackagesPage = () => {
             </div>
 
             <button
-              onClick={() => nav("/admin/sms-packages/create")}
+              onClick={() => nav("/admin/sms-packages/add")}
               className="bg-rose-500 text-white text-sm font-medium rounded-md px-4 py-2 hover:bg-rose-600 transition"
             >
               + Add Package

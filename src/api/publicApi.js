@@ -81,8 +81,15 @@ export const getSmsPackages = () =>
 export const createSmsPackage = (payload) =>
   axios.post("/api/admin/sms-packages", payload).then((r) => r.data);
 
+export const getSmsPackageById = (id) =>
+  axios.get(`/api/admin/sms-packages/${id}`).then((r) => r.data);
+
 export const updateSmsPackage = (id, payload) =>
   axios.put(`/api/admin/sms-packages/${id}`, payload).then((r) => r.data);
 
 export const deleteSmsPackage = (id) =>
   axios.delete(`/api/admin/sms-packages/${id}`).then((r) => r.data);
+
+// Get SMS purchase balance (for super-admin)
+export const getSmsPurchaseBalance = () =>
+  axios.get("/api/admin/sms-purchase-balance").then((r) => r.data);
