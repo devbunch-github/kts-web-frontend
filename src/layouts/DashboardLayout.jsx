@@ -9,7 +9,7 @@ export default function DashboardLayout() {
     { name: "Dashboard", path: "/dashboard/income", icon: "📊" },
     { name: "Income", path: "/dashboard/income" },
     { name: "Expense", path: "/dashboard/expense" },
-    { name: "Service", path: "/dashboard/service" },
+    { name: "Service", path: "/dashboard/services" },
     { name: "Customer", path: "/dashboard/customer" },
     { name: "Employee", path: "/dashboard/employee" },
     { name: "Payment", path: "/dashboard/payment" },

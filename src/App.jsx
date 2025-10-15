@@ -17,7 +17,9 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import ExpenseIndex from "./pages/expenses/ExpenseIndex";
 import ExpenseForm from "./pages/expenses/ExpenseForm";
 import ExpenseView from "./pages/expenses/ExpenseView";
-
+import ServiceIndex from "./pages/service/ServiceIndex";
+import ServiceForm from "./pages/service/ServiceForm";
+import CategoryForm from "./pages/service/CategoryForm";
 
 export default function App() {
   return (
@@ -55,8 +57,16 @@ export default function App() {
           <Route path="expense/new" element={<ExpenseForm />} />
           <Route path="expense/:id/edit" element={<ExpenseForm />} />
           <Route path="expense/:id" element={<ExpenseView />} />
-        </Route>
 
+          {/* ✅ Services */}
+          <Route path="services" element={<ServiceIndex />} />
+          <Route path="services/new" element={<ServiceForm />} />
+          <Route path="services/:id/edit" element={<ServiceForm />} />
+
+          {/* ✅ Categories */}
+          <Route path="services/categories/new" element={<CategoryForm />} />
+          <Route path="services/categories/:id/edit" element={<CategoryForm />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

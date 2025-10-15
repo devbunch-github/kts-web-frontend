@@ -10,8 +10,11 @@ import Spinner from "../../components/Spinner";
 
 export default function ExpenseIndex() {
   const navigate = useNavigate();
+
+  // State
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [busyRow, setBusyRow] = useState(null);
@@ -21,29 +24,35 @@ export default function ExpenseIndex() {
     end_date: "",
     category_id: "",
     search: "",
+    page: 1,
   });
 
-  // Fetch expenses
+  // 🧭 Fetch Expenses
   const fetchExpenses = async () => {
     setLoading(true);
     try {
       const res = await listExpenses(filters);
-      setExpenses(res.data ?? res);
+      // Ensure the response is properly read
+      const payload = res.data ? res : res; // r.data already unwrapped in api/expense.js
+      setExpenses(payload.data || []);
+      setPagination(payload.meta || {});
+    } catch (e) {
+      console.error("Failed to fetch expenses:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial load
+  // Initial Load
   useEffect(() => {
     listCategories().then((r) => setCategories(r.data ?? r));
     fetchExpenses();
   }, []);
 
-  // Auto refetch on category/date filter change
+  // Re-fetch when filters change (except search)
   useEffect(() => {
     fetchExpenses();
-  }, [filters.start_date, filters.end_date, filters.category_id]);
+  }, [filters.start_date, filters.end_date, filters.category_id, filters.page]);
 
   // Debounced search
   useEffect(() => {
@@ -51,7 +60,7 @@ export default function ExpenseIndex() {
     return () => clearTimeout(delay);
   }, [filters.search]);
 
-  // Delete expense
+  // 🗑 Delete Expense
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this expense?")) return;
     setBusyRow(id);
@@ -63,7 +72,7 @@ export default function ExpenseIndex() {
     }
   };
 
-  // Generate PDF report
+  // 📄 Generate PDF
   const handleGeneratePdf = async () => {
     setPdfLoading(true);
     try {
@@ -85,7 +94,7 @@ export default function ExpenseIndex() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ====== Header ====== */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-800">Expense</h1>
         <button
@@ -97,7 +106,7 @@ export default function ExpenseIndex() {
         </button>
       </div>
 
-      {/* Filters + Table */}
+      {/* ====== Filters + Table ====== */}
       <div className="bg-white rounded-2xl shadow p-6">
         {/* Filter Row 1 */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-5">
@@ -105,7 +114,7 @@ export default function ExpenseIndex() {
             type="date"
             value={filters.start_date}
             onChange={(e) =>
-              setFilters((s) => ({ ...s, start_date: e.target.value }))
+              setFilters((s) => ({ ...s, start_date: e.target.value, page: 1 }))
             }
             className="w-full md:w-60 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-200"
           />
@@ -114,7 +123,7 @@ export default function ExpenseIndex() {
             type="date"
             value={filters.end_date}
             onChange={(e) =>
-              setFilters((s) => ({ ...s, end_date: e.target.value }))
+              setFilters((s) => ({ ...s, end_date: e.target.value, page: 1 }))
             }
             className="w-full md:w-60 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-200"
           />
@@ -139,10 +148,15 @@ export default function ExpenseIndex() {
 
         {/* Filter Row 2 */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-5">
+          {/* Category Filter */}
           <select
             value={filters.category_id}
             onChange={(e) =>
-              setFilters((s) => ({ ...s, category_id: e.target.value }))
+              setFilters((s) => ({
+                ...s,
+                category_id: e.target.value,
+                page: 1,
+              }))
             }
             className="w-full md:w-[420px] rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200"
           >
@@ -163,7 +177,7 @@ export default function ExpenseIndex() {
               placeholder="Search supplier or notes..."
               value={filters.search}
               onChange={(e) =>
-                setFilters((s) => ({ ...s, search: e.target.value }))
+                setFilters((s) => ({ ...s, search: e.target.value, page: 1 }))
               }
               className="w-full rounded-lg border border-rose-200 bg-white px-9 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-200"
             />
@@ -182,7 +196,7 @@ export default function ExpenseIndex() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* ====== Table ====== */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -200,6 +214,7 @@ export default function ExpenseIndex() {
                 )}
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-200">
               {!loading &&
                 expenses.map((item) => (
@@ -247,7 +262,7 @@ export default function ExpenseIndex() {
             </tbody>
           </table>
 
-          {/* States */}
+          {/* ====== States ====== */}
           {loading && (
             <p className="text-center py-6 text-gray-500">
               <span className="inline-flex items-center gap-2">
@@ -260,6 +275,25 @@ export default function ExpenseIndex() {
             <p className="text-center py-6 text-gray-500">No records found.</p>
           )}
         </div>
+
+        {/* ====== Pagination ====== */}
+        {pagination.last_page > 1 && (
+          <div className="flex justify-center mt-6 flex-wrap gap-2">
+            {[...Array(pagination.last_page)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setFilters((s) => ({ ...s, page: i + 1 }))}
+                className={`px-3 py-1.5 rounded-md text-sm transition ${
+                  pagination.current_page === i + 1
+                    ? "bg-rose-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
