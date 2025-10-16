@@ -6,11 +6,11 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
 
   const menu = [
-    { name: "Dashboard", path: "/dashboard/income", icon: "📊" },
+    { name: "Dashboard", path: "/dashboard", icon: "📊" },
     { name: "Income", path: "/dashboard/income" },
     { name: "Expense", path: "/dashboard/expense" },
     { name: "Service", path: "/dashboard/services" },
-    { name: "Customer", path: "/dashboard/customer" },
+    { name: "Customer", path: "/dashboard/customers" },
     { name: "Employee", path: "/dashboard/employee" },
     { name: "Payment", path: "/dashboard/payment" },
     { name: "Settings", path: "/dashboard/settings" },
@@ -29,7 +29,7 @@ export default function DashboardLayout() {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === item.path
+                location.pathname.startsWith(item.path)
                   ? "bg-rose-100 text-rose-700"
                   : "text-gray-700 hover:bg-rose-50"
               }`}

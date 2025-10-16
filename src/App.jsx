@@ -21,6 +21,10 @@ import ServiceIndex from "./pages/service/ServiceIndex";
 import ServiceForm from "./pages/service/ServiceForm";
 import CategoryForm from "./pages/service/CategoryForm";
 
+// ✅ New
+import CustomerList from "./pages/customer/CustomerList";
+import CustomerForm from "./pages/customer/CustomerForm";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,14 +62,20 @@ export default function App() {
           <Route path="expense/:id/edit" element={<ExpenseForm />} />
           <Route path="expense/:id" element={<ExpenseView />} />
 
-          {/* ✅ Services */}
+          {/* Services */}
           <Route path="services" element={<ServiceIndex />} />
           <Route path="services/new" element={<ServiceForm />} />
           <Route path="services/:id/edit" element={<ServiceForm />} />
 
-          {/* ✅ Categories */}
+          {/* Categories */}
           <Route path="services/categories/new" element={<CategoryForm />} />
           <Route path="services/categories/:id/edit" element={<CategoryForm />} />
+
+          {/* ✅ Customers */}
+          <Route path="customers" element={<CustomerList />} />
+          <Route path="customers/new" element={<CustomerForm />} />
+          <Route path="customers/edit/:id" element={<CustomerForm />} />
+          <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
         </Route>
       </Routes>
     </BrowserRouter>
