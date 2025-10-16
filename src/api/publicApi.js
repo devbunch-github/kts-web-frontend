@@ -79,3 +79,41 @@ export const capturePayPalOrder = (payload) =>
 // Generic confirm
 export const confirmPayment = (payload) =>
   axios.post("/api/payment/confirm", payload).then((r) => r.data);
+
+// Super admin get users data
+export const getAdminDashboardData = () =>
+  axios.get("/api/admin/dashboard").then((r) => r.data);
+
+//User Income
+export const getAdminIncome = (userId) =>
+  axios.get(`/api/admin/income/${userId}`).then((r) => r.data);
+
+//User Expense
+export const getAdminExpense = (userId) =>
+  axios.get(`/api/admin/expense/${userId}`).then((r) => r.data);
+
+//Payment Setting
+export const getPaymentSettings = () =>
+  axios.get("/api/admin/payment-settings").then((r) => r.data);
+export const updatePaymentSettings = (payload) =>
+  axios.post("/api/admin/payment-settings", payload).then((r) => r.data);
+
+// SMS Packages
+export const getSmsPackages = () =>
+  axios.get("/api/admin/sms-packages").then((r) => r.data);
+
+export const createSmsPackage = (payload) =>
+  axios.post("/api/admin/sms-packages", payload).then((r) => r.data);
+
+export const getSmsPackageById = (id) =>
+  axios.get(`/api/admin/sms-packages/${id}`).then((r) => r.data);
+
+export const updateSmsPackage = (id, payload) =>
+  axios.put(`/api/admin/sms-packages/${id}`, payload).then((r) => r.data);
+
+export const deleteSmsPackage = (id) =>
+  axios.delete(`/api/admin/sms-packages/${id}`).then((r) => r.data);
+
+// Get SMS purchase balance (for super-admin)
+export const getSmsPurchaseBalance = () =>
+  axios.get("/api/admin/sms-purchase-balance").then((r) => r.data);
