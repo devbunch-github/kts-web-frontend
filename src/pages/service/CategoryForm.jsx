@@ -21,12 +21,16 @@ export default function CategoryForm() {
   useEffect(() => {
     if (!isEdit) return;
     (async () => {
-      const res = await getServiceCategory(id);
-      const cat = res?.data || res;
-      setForm({
-        Name: cat?.Name || cat?.name || "",
-        Description: cat?.Description || cat?.description || "",
-      });
+      try {
+        const res = await getServiceCategory(id);
+        const cat = res?.data || res;
+        setForm({
+          Name: cat?.Name || cat?.name || "",
+          Description: cat?.Description || cat?.description || "",
+        });
+      } catch (e) {
+        alert("Failed to load category.");
+      }
     })();
   }, [id, isEdit]);
 
@@ -34,8 +38,11 @@ export default function CategoryForm() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (isEdit) await updateServiceCategory(id, form);
-      else await createServiceCategory(form);
+      if (isEdit) {
+        await updateServiceCategory(id, form);
+      } else {
+        await createServiceCategory(form);
+      }
       navigate("/dashboard/services");
     } catch (e2) {
       alert(e2?.response?.data?.message || "Save failed.");
@@ -58,12 +65,7 @@ export default function CategoryForm() {
         </h1>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="max-w-4xl space-y-5"
-        autoComplete="off"
-      >
-        {/* Category Name */}
+      <form onSubmit={onSubmit} className="max-w-4xl space-y-5" autoComplete="off">
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Category Name
@@ -72,12 +74,11 @@ export default function CategoryForm() {
             value={form.Name}
             onChange={(e) => setForm({ ...form, Name: e.target.value })}
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
-            placeholder="e.g Hair, Makeup, Skincare"
+            placeholder="e.g Hair & Styling"
             required
           />
         </div>
 
-        {/* Description */}
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Description
@@ -89,7 +90,7 @@ export default function CategoryForm() {
             }
             rows={6}
             className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
-            placeholder="Write a short description about this category"
+            placeholder="Enter description"
           />
         </div>
 
@@ -97,7 +98,7 @@ export default function CategoryForm() {
           <button
             type="submit"
             disabled={saving}
-            className="h-11 w-[160px] rounded-xl bg-rose-300 text-white hover:bg-rose-400 disabled:opacity-60"
+            className="h-11 w-[160px] rounded-xl bg-rose-300 text-white transition hover:bg-rose-400 disabled:opacity-60"
           >
             {saving ? <Spinner sm /> : "Save"}
           </button>

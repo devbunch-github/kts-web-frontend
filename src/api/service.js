@@ -1,6 +1,6 @@
 import axios from "./http";
 
-// ===== SERVICES =====
+// ===== Services =====
 export const listServices = (params = {}) =>
   axios.get("/api/services", { params }).then((r) => r.data);
 
@@ -16,7 +16,7 @@ export const updateService = (id, payload) =>
 export const deleteService = (id) =>
   axios.delete(`/api/admin/services/${id}`).then((r) => r.data);
 
-// ===== CATEGORIES =====
+// ===== Categories =====
 export const listServiceCategories = () =>
   axios.get("/api/categories").then((r) => r.data);
 
@@ -32,6 +32,11 @@ export const updateServiceCategory = (id, payload) =>
 export const deleteServiceCategory = (id) =>
   axios.delete(`/api/admin/categories/${id}`).then((r) => r.data);
 
-// ===== FILE UPLOADS =====
-export const uploadGeneric = (formData) =>
-  axios.post("/api/file-upload", formData).then((r) => r.data);
+// ===== Uploads =====
+export const uploadGeneric = async (formData) => {
+  return axios.post("/api/file-upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",  // ✅ critical
+    },
+  }).then((r) => r.data);
+};

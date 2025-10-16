@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Spinner from "../../components/Spinner";
 import {
   createService,
@@ -12,10 +12,17 @@ import {
 export default function ServiceForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const duplicateId = searchParams.get("duplicate");
+
   const isEdit = Boolean(id);
+  const isDuplicate = Boolean(duplicateId);
 
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [fileLabel, setFileLabel] = useState("");
+  const [imageLabel, setImageLabel] = useState("");
+
   const [form, setForm] = useState({
     Name: "",
     CategoryId: "",
@@ -28,57 +35,100 @@ export default function ServiceForm() {
     ImagePath: "",
   });
 
-  const [fileLabel, setFileLabel] = useState("");
-  const [imageLabel, setImageLabel] = useState("");
-
+  // Boot: load categories + data
   useEffect(() => {
     const boot = async () => {
-      const cats = await listServiceCategories();
-      setCategories(cats?.data || cats || []);
+      try {
+        const cats = await listServiceCategories();
+        setCategories(cats?.data || cats || []);
 
-      if (isEdit) {
-        const res = await getService(id);
-        const svc = res?.data || res;
-        setForm({
-          Name: svc?.Name ?? "",
-          CategoryId: svc?.CategoryId ?? "",
-          TotalPrice: svc?.TotalPrice ?? "",
-          DepositType: svc?.DepositType ?? "Percentage",
-          Deposit: svc?.Deposit ?? "",
-          DefaultAppointmentDuration:
-            svc?.DefaultAppointmentDuration ?? "",
-          Description: svc?.Description ?? "",
-          FilePath: svc?.FilePath ?? "",
-          ImagePath: svc?.ImagePath ?? "",
-        });
-        if (svc?.FilePath) setFileLabel(svc.FilePath.split("/").pop());
-        if (svc?.ImagePath) setImageLabel(svc.ImagePath.split("/").pop());
+        let svcData = null;
+
+        if (isEdit) {
+          const data = await getService(id);
+          svcData = data?.data || data;
+        } else if (isDuplicate) {
+          const data = await getService(duplicateId);
+          svcData = data?.data || data;
+        }
+
+        if (svcData) {
+          setForm({
+            Name: isDuplicate ? `${svcData?.Name || ""} Copy` : svcData?.Name || "",
+            CategoryId: svcData?.CategoryId || "",
+            TotalPrice: svcData?.TotalPrice || "",
+            DepositType:
+              svcData?.DepositType === "0"
+                ? "Percentage"
+                : svcData?.DepositType === "1"
+                ? "Fixed"
+                : "Percentage",
+            Deposit: svcData?.Deposit || "",
+            DefaultAppointmentDuration:
+              svcData?.DefaultAppointmentDuration || "",
+            Description: svcData?.Description || "",
+            FilePath: svcData?.FilePath || "",
+            ImagePath: svcData?.ImagePath || "",
+          });
+
+          setFileLabel(svcData?.FilePath ? svcData.FilePath.split("/").pop() : "");
+          setImageLabel(svcData?.ImagePath ? svcData.ImagePath.split("/").pop() : "");
+        }
+      } catch (err) {
+        console.error(err);
       }
     };
     boot();
-  }, [id, isEdit]);
+  }, [id, duplicateId, isEdit, isDuplicate]);
 
-  const onUpload = async (file, key) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await uploadGeneric(fd);
-    const path = res?.path || res?.url || res?.data?.path;
-    if (!path) return alert("Upload failed.");
-    setForm((f) => ({ ...f, [key]: path }));
+  // File upload handler
+  const handleUpload = async (file, key) => {
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadGeneric(fd);
+      const path = res?.path || res?.url || res?.data?.path;
+
+      if (!path) return alert("Upload failed: no file path returned.");
+
+      if (key === "FilePath") {
+        setForm((prev) => ({ ...prev, FilePath: path }));
+        setFileLabel(file.name);
+      } else if (key === "ImagePath") {
+        setForm((prev) => ({ ...prev, ImagePath: path }));
+        setImageLabel(file.name);
+      }
+    } catch (err) {
+      alert("Upload failed. Please try again.");
+    }
   };
 
-  const onSubmit = async (e) => {
+  // Submit handler
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        Name: form.Name,
+        CategoryId: form.CategoryId,
+        TotalPrice: form.TotalPrice,
+        DepositType: form.DepositType,
+        Deposit: form.Deposit,
+        DefaultAppointmentDuration: form.DefaultAppointmentDuration,
+        Description: form.Description,
+        FilePath: form.FilePath,
+        ImagePath: form.ImagePath,
+      };
+
       if (isEdit) {
-        await updateService(id, form);
+        await updateService(id, payload);
       } else {
-        await createService(form);
+        await createService(payload);
       }
+
       navigate("/dashboard/services");
-    } catch (e2) {
-      alert(e2?.response?.data?.message || "Save failed.");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to save service.");
     } finally {
       setSaving(false);
     }
@@ -95,17 +145,23 @@ export default function ServiceForm() {
           ‹
         </button>
         <h1 className="text-xl font-semibold text-gray-800">
-          {isEdit ? "Edit Service" : "Add New Service"}
+          {isEdit
+            ? "Edit Service"
+            : isDuplicate
+            ? "Duplicate Service"
+            : "Add New Service"}
         </h1>
       </div>
 
+      {/* Form */}
       <form
-        onSubmit={onSubmit}
+        onSubmit={handleSubmit}
         className="grid grid-cols-12 gap-x-6 gap-y-6"
         autoComplete="off"
       >
-        {/* Left */}
+        {/* LEFT COLUMN */}
         <div className="col-span-12 md:col-span-6 space-y-5">
+          {/* Name */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Service Name
@@ -113,11 +169,13 @@ export default function ServiceForm() {
             <input
               value={form.Name}
               onChange={(e) => setForm({ ...form, Name: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:ring-2 ring-rose-200 outline-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
+              placeholder="e.g Hair Color"
               required
             />
           </div>
 
+          {/* Price */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Price (£)
@@ -129,14 +187,16 @@ export default function ServiceForm() {
               onChange={(e) =>
                 setForm({ ...form, TotalPrice: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:ring-2 ring-rose-200 outline-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
+              placeholder="e.g. 87.00"
               required
             />
           </div>
 
+          {/* Duration */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
-              Duration (minutes)
+              Duration (mins)
             </label>
             <input
               type="number"
@@ -148,47 +208,84 @@ export default function ServiceForm() {
                   DefaultAppointmentDuration: e.target.value,
                 })
               }
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:ring-2 ring-rose-200 outline-none"
-              required
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
+              placeholder="e.g. 30"
             />
           </div>
 
           {/* Upload File */}
           <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Upload File
             </label>
-            <label className="flex h-[140px] cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white">
+            <label className="flex h-[140px] cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white relative overflow-hidden">
               <input
                 type="file"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) {
-                    setFileLabel(f.name);
-                    onUpload(f, "FilePath");
-                  }
+                  if (f) handleUpload(f, "FilePath");
                 }}
               />
-              <div className="text-sm text-gray-500 text-center">
-                {fileLabel || "Browse or drag a file"}
-              </div>
+              {form.FilePath ? (
+                <div className="text-center">
+                  <a
+                    href={`/${form.FilePath}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-rose-500 underline"
+                  >
+                    {fileLabel || "View Uploaded File"}
+                  </a>
+                </div>
+              ) : (
+                <div className="text-center text-sm text-gray-500">
+                  <div>Drag file to upload</div>
+                  <div className="my-1">or</div>
+                  <div className="underline">Browse file</div>
+                </div>
+              )}
             </label>
-            {form.FilePath && (
-              <a
-                href={form.FilePath}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-rose-600 underline mt-2 block"
-              >
-                View uploaded file
-              </a>
-            )}
+          </div>
+
+          {/* Upload Image */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Upload Image
+            </label>
+            <label className="flex h-[140px] cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white relative overflow-hidden">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUpload(f, "ImagePath");
+                }}
+              />
+              {form.ImagePath ? (
+                <div className="flex flex-col items-center">
+                  <img
+                    src={`${form.ImagePath}`}
+                    alt="Preview"
+                    className="h-[90px] w-[90px] rounded-lg object-cover"
+                  />
+                  <span className="mt-2 text-xs text-gray-500">{imageLabel}</span>
+                </div>
+              ) : (
+                <div className="text-center text-sm text-gray-500">
+                  <div>Drag image to upload</div>
+                  <div className="my-1">or</div>
+                  <div className="underline">Browse image</div>
+                </div>
+              )}
+            </label>
           </div>
         </div>
 
-        {/* Right */}
+        {/* RIGHT COLUMN */}
         <div className="col-span-12 md:col-span-6 space-y-5">
+          {/* Category */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Select Category
@@ -198,7 +295,7 @@ export default function ServiceForm() {
               onChange={(e) =>
                 setForm({ ...form, CategoryId: e.target.value })
               }
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:ring-2 ring-rose-200 outline-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
               required
             >
               <option value="">Select category</option>
@@ -210,6 +307,7 @@ export default function ServiceForm() {
             </select>
           </div>
 
+          {/* Deposit */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Deposit
@@ -222,21 +320,23 @@ export default function ServiceForm() {
                 onChange={(e) =>
                   setForm({ ...form, Deposit: e.target.value })
                 }
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:ring-2 ring-rose-200 outline-none"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none ring-rose-200 focus:ring-2"
+                placeholder="e.g. 25"
               />
               <select
                 value={form.DepositType}
                 onChange={(e) =>
                   setForm({ ...form, DepositType: e.target.value })
                 }
-                className="h-[44px] w-[140px] rounded-xl border border-gray-200 px-4 outline-none focus:ring-2 ring-rose-200"
+                className="h-[44px] w-[160px] rounded-xl border border-gray-200 bg-white px-4 outline-none ring-rose-200 focus:ring-2"
               >
-                <option value="Percentage">%</option>
-                <option value="Fixed">Fixed (£)</option>
+                <option value="Percentage">Percentage</option>
+                <option value="Fixed">Fixed price</option>
               </select>
             </div>
           </div>
 
+          {/* Description */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Description
@@ -247,48 +347,18 @@ export default function ServiceForm() {
                 setForm({ ...form, Description: e.target.value })
               }
               rows={5}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 resize-none focus:ring-2 ring-rose-200 outline-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 resize-none outline-none ring-rose-200 focus:ring-2"
               placeholder="Enter description"
             />
           </div>
-
-          {/* Upload Image */}
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              Upload Image
-            </label>
-            <label className="flex h-[140px] cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    setImageLabel(f.name);
-                    onUpload(f, "ImagePath");
-                  }
-                }}
-              />
-              <div className="text-sm text-gray-500 text-center">
-                {imageLabel || "Browse or drag image"}
-              </div>
-            </label>
-            {form.ImagePath && (
-              <img
-                src={form.ImagePath}
-                alt="Preview"
-                className="mt-3 h-32 w-32 rounded-xl object-cover border"
-              />
-            )}
-          </div>
         </div>
 
+        {/* Save */}
         <div className="col-span-12 flex justify-end">
           <button
             type="submit"
             disabled={saving}
-            className="h-11 w-[160px] rounded-xl bg-rose-300 text-white hover:bg-rose-400 disabled:opacity-60"
+            className="h-11 w-[160px] rounded-xl bg-rose-300 text-white transition hover:bg-rose-400 disabled:opacity-60"
           >
             {saving ? <Spinner sm /> : "Save"}
           </button>
