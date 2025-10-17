@@ -37,6 +37,10 @@ import EmployeeForm from "./pages/employee/EmployeeForm";
 import EmployeeSchedule from "./pages/employee/EmployeeSchedule";
 import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
 
+// ✅ New Appointment Pages
+import AppointmentIndex from "./pages/appointment/AppointmentIndex";
+import AppointmentForm from "./pages/appointment/AppointmentForm";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -50,26 +54,20 @@ export default function App() {
           <Route path="/subscription/confirm" element={<ConfirmPage />} />
           <Route path="/subscription/set-password" element={<SetPasswordPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelled />} />
-          
-          
         </Route>
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/income" element={<AdminIncomePage />} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/income/:id" element={<AdminIncomePage />} />
         <Route path="/admin/expense/:id" element={<AdminExpensePage />} />
         <Route path="/admin/payment-settings" element={<PaymentSettingsPage />} />
-
         <Route path="/admin/sms-packages" element={<SmsPackagesPage />} />
         <Route path="/admin/sms-packages/add" element={<AddSmsPackagePage />} />
-        <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />   
+        <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />
         <Route path="/admin/sms-subscriptions" element={<SmsSubscriptionListPage />} />
         <Route path="/admin/sms-purchase-balance" element={<SmsPurchaseBalancePage />} />
-
 
         {/* Business Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
@@ -97,17 +95,23 @@ export default function App() {
           <Route path="services/categories/new" element={<CategoryForm />} />
           <Route path="services/categories/:id/edit" element={<CategoryForm />} />
 
-          {/* ✅ Customers */}
+          {/* Customers */}
           <Route path="customers" element={<CustomerList />} />
           <Route path="customers/new" element={<CustomerForm />} />
           <Route path="customers/edit/:id" element={<CustomerForm />} />
           <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
 
+          {/* Employees */}
           <Route path="employees" element={<EmployeeIndex />} />
           <Route path="employees/new" element={<EmployeeForm />} />
           <Route path="employees/:id/edit" element={<EmployeeForm />} />
           <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
           <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
+
+          {/* ✅ Appointments */}
+          <Route path="appointments" element={<AppointmentIndex />} />
+          <Route path="appointments/new" element={<AppointmentForm />} />
+          <Route path="appointments/:id/edit" element={<AppointmentForm />} />
         </Route>
       </Routes>
     </BrowserRouter>
