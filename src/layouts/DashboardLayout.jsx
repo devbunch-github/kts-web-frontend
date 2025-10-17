@@ -11,7 +11,7 @@ export default function DashboardLayout() {
     { name: "Expense", path: "/dashboard/expense" },
     { name: "Service", path: "/dashboard/services" },
     { name: "Customer", path: "/dashboard/customers" },
-    { name: "Employee", path: "/dashboard/employee" },
+    { name: "Employee", path: "/dashboard/employees" },
     { name: "Payment", path: "/dashboard/payment" },
     { name: "Settings", path: "/dashboard/settings" },
   ];

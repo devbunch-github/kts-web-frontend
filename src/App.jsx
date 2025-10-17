@@ -29,9 +29,13 @@ import ServiceIndex from "./pages/service/ServiceIndex";
 import ServiceForm from "./pages/service/ServiceForm";
 import CategoryForm from "./pages/service/CategoryForm";
 
-// ✅ New
 import CustomerList from "./pages/customer/CustomerList";
 import CustomerForm from "./pages/customer/CustomerForm";
+
+import EmployeeIndex from "./pages/employee/EmployeeIndex";
+import EmployeeForm from "./pages/employee/EmployeeForm";
+import EmployeeSchedule from "./pages/employee/EmployeeSchedule";
+import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
 
 export default function App() {
   return (
@@ -98,6 +102,12 @@ export default function App() {
           <Route path="customers/new" element={<CustomerForm />} />
           <Route path="customers/edit/:id" element={<CustomerForm />} />
           <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
+
+          <Route path="employees" element={<EmployeeIndex />} />
+          <Route path="employees/new" element={<EmployeeForm />} />
+          <Route path="employees/:id/edit" element={<EmployeeForm />} />
+          <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
+          <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
         </Route>
       </Routes>
     </BrowserRouter>
