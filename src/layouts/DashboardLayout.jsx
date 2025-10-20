@@ -11,7 +11,8 @@ export default function DashboardLayout() {
     { name: "Expense", path: "/dashboard/expense" },
     { name: "Service", path: "/dashboard/services" },
     { name: "Customer", path: "/dashboard/customers" },
-    { name: "Employee", path: "/dashboard/employee" },
+    { name: "Employee", path: "/dashboard/employees" },
+    { name: "Appointment", path: "/dashboard/appointments" },
     { name: "Payment", path: "/dashboard/payment" },
     { name: "Settings", path: "/dashboard/settings" },
   ];
@@ -23,6 +24,7 @@ export default function DashboardLayout() {
         <div className="flex items-center gap-2 mb-8 px-2">
           <img src="/images/icons/appt.live.png" alt="logo" className="h-6" />
         </div>
+
         <nav className="space-y-2">
           {menu.map((item) => (
             <Link
@@ -31,7 +33,7 @@ export default function DashboardLayout() {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
                 location.pathname.startsWith(item.path)
                   ? "bg-rose-100 text-rose-700"
-                  : "text-gray-700 hover:bg-rose-50"
+                  : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
               }`}
             >
               {item.icon && <span>{item.icon}</span>}

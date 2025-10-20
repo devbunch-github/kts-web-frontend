@@ -117,3 +117,28 @@ export const deleteSmsPackage = (id) =>
 // Get SMS purchase balance (for super-admin)
 export const getSmsPurchaseBalance = () =>
   axios.get("/api/admin/sms-purchase-balance").then((r) => r.data);
+
+// Subscription package
+export const getSubscriptionPlans = () =>
+  axios.get("/api/admin/plans").then((r) => r.data);
+
+export const getSubscriptionPlan = (id) =>
+  axios.get(`/api/admin/plans/${id}`).then((r) => r.data);
+
+export const createSubscriptionPackage = (payload) =>
+  axios.post("/api/admin/plans", payload).then((r) => r.data);
+
+export const updateSubscriptionPackage = (id, payload) =>
+  axios.put(`/api/admin/plans/${id}`, payload).then((r) => r.data);
+
+export const deleteSubscriptionPackage = (id) =>
+  axios.delete(`/api/admin/plans/${id}`).then((r) => r.data);
+
+
+// List subscriptions (with user + plan info)
+export const getSubscriptions = (params = {}) =>
+  axios.get("/api/admin/subscriptions", { params }).then((r) => r.data);
+
+// Cancel a subscription
+export const cancelSubscription = (id) =>
+  axios.post(`/api/admin/subscriptions/${id}/cancel`).then((r) => r.data);
