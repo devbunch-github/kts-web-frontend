@@ -25,31 +25,31 @@ export default function AdminLoginPage() {
 		
 		try {
 			const res = await apiLogin({
-				email: form.email,
-				password: form.password,
-				remember: form.remember,
-			});
-			console.log("Login response:", res);
+        email: form.email,
+        password: form.password,
+        remember: form.remember,
+      });
+      console.log("Login response:", res);
 
-			// Check if using Axios (response in data) or Fetch/direct response
-			const responseData = res.data || res;
+      const responseData = res.data || res;
+      console.log(responseData);
 
-			if (responseData && responseData.ok) {
-				const user = responseData.user;
-				const redirectUrl = responseData.redirect_url || "/dashboard";
+      if (responseData?.token) {
+        localStorage.setItem("authToken", responseData.token);
+        localStorage.setItem("apptlive_user", JSON.stringify(responseData.user));
 
-				console.log("Logged in user:", user);
+        const user = responseData.user;
+        const redirectUrl = responseData.redirect_url || "/dashboard";
 
-				// Store user info in localStorage or context
-				localStorage.setItem("user", JSON.stringify(user));
-				localStorage.setItem("userRole", user.role);
-				localStorage.setItem("userPermissions", JSON.stringify(user.permissions));
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userPermissions", JSON.stringify(user.permissions));
 
-				// Redirect based on role
-				window.location.href = redirectUrl;
-			} else {
-				setError(responseData?.message || "Login failed. Please try again.");
-			}
+        window.location.href = redirectUrl;
+      } else {
+        setError(responseData?.message || "Login failed. Please try again.");
+      }
+
 		} catch (err) {
 			console.error("Login error:", err);
 			setError(

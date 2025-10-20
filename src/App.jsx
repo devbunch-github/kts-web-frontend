@@ -28,6 +28,24 @@ import IncomeIndex from "./pages/income/IncomeIndex";
 import IncomeForm from "./pages/income/IncomeForm";
 import IncomeView from "./pages/income/IncomeView";
 import DashboardLayout from "./layouts/DashboardLayout";
+import ExpenseIndex from "./pages/expenses/ExpenseIndex";
+import ExpenseForm from "./pages/expenses/ExpenseForm";
+import ExpenseView from "./pages/expenses/ExpenseView";
+import ServiceIndex from "./pages/service/ServiceIndex";
+import ServiceForm from "./pages/service/ServiceForm";
+import CategoryForm from "./pages/service/CategoryForm";
+
+import CustomerList from "./pages/customer/CustomerList";
+import CustomerForm from "./pages/customer/CustomerForm";
+
+import EmployeeIndex from "./pages/employee/EmployeeIndex";
+import EmployeeForm from "./pages/employee/EmployeeForm";
+import EmployeeSchedule from "./pages/employee/EmployeeSchedule";
+import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
+
+// ✅ New Appointment Pages
+import AppointmentIndex from "./pages/appointment/AppointmentIndex";
+import AppointmentForm from "./pages/appointment/AppointmentForm";
 
 export default function App() {
   return (
@@ -72,11 +90,47 @@ export default function App() {
 
         {/* Business Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
+          {/* Default */}
           <Route index element={<IncomeIndex />} />
+
+          {/* Income */}
           <Route path="income" element={<IncomeIndex />} />
           <Route path="income/new" element={<IncomeForm />} />
           <Route path="income/:id/edit" element={<IncomeForm />} />
           <Route path="income/:id" element={<IncomeView />} />
+
+          {/* Expense */}
+          <Route path="expense" element={<ExpenseIndex />} />
+          <Route path="expense/new" element={<ExpenseForm />} />
+          <Route path="expense/:id/edit" element={<ExpenseForm />} />
+          <Route path="expense/:id" element={<ExpenseView />} />
+
+          {/* Services */}
+          <Route path="services" element={<ServiceIndex />} />
+          <Route path="services/new" element={<ServiceForm />} />
+          <Route path="services/:id/edit" element={<ServiceForm />} />
+
+          {/* Categories */}
+          <Route path="services/categories/new" element={<CategoryForm />} />
+          <Route path="services/categories/:id/edit" element={<CategoryForm />} />
+
+          {/* Customers */}
+          <Route path="customers" element={<CustomerList />} />
+          <Route path="customers/new" element={<CustomerForm />} />
+          <Route path="customers/edit/:id" element={<CustomerForm />} />
+          <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
+
+          {/* Employees */}
+          <Route path="employees" element={<EmployeeIndex />} />
+          <Route path="employees/new" element={<EmployeeForm />} />
+          <Route path="employees/:id/edit" element={<EmployeeForm />} />
+          <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
+          <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
+
+          {/* ✅ Appointments */}
+          <Route path="appointments" element={<AppointmentIndex />} />
+          <Route path="appointments/new" element={<AppointmentForm />} />
+          <Route path="appointments/:id/edit" element={<AppointmentForm />} />
         </Route>
       </Routes>
     </BrowserRouter>

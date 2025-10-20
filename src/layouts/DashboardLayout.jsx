@@ -6,11 +6,13 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
 
   const menu = [
-    { name: "Dashboard", path: "/dashboard/income", icon: "📊" },
+    { name: "Dashboard", path: "/dashboard", icon: "📊" },
+    { name: "Income", path: "/dashboard/income" },
     { name: "Expense", path: "/dashboard/expense" },
-    { name: "Service", path: "/dashboard/service" },
-    { name: "Customer", path: "/dashboard/customer" },
-    { name: "Employee", path: "/dashboard/employee" },
+    { name: "Service", path: "/dashboard/services" },
+    { name: "Customer", path: "/dashboard/customers" },
+    { name: "Employee", path: "/dashboard/employees" },
+    { name: "Appointment", path: "/dashboard/appointments" },
     { name: "Payment", path: "/dashboard/payment" },
     { name: "Settings", path: "/dashboard/settings" },
   ];
@@ -22,15 +24,16 @@ export default function DashboardLayout() {
         <div className="flex items-center gap-2 mb-8 px-2">
           <img src="/images/icons/appt.live.png" alt="logo" className="h-6" />
         </div>
+
         <nav className="space-y-2">
           {menu.map((item) => (
             <Link
               key={item.path}
               to={item.path}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === item.path
+                location.pathname.startsWith(item.path)
                   ? "bg-rose-100 text-rose-700"
-                  : "text-gray-700 hover:bg-rose-50"
+                  : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
               }`}
             >
               {item.icon && <span>{item.icon}</span>}

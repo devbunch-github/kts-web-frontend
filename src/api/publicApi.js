@@ -19,14 +19,39 @@ export const createCheckout = (payload) =>
 export const confirmCheckout = (payload) =>
   axios.post("/api/checkout/confirm", payload).then((r) => r.data);
 
+// =======================
+// ✅ Sanctum Auth Helpers
+// =======================
+
+// Initialize Sanctum (CSRF + session cookies)
+export const initSanctum = () =>
+  axios.get("/sanctum/csrf-cookie", { withCredentials: true });
+
 // Auth
-export const apiRegister = (payload) =>
-  axios.post("/api/auth/register", payload).then((r) => r.data);
+export const apiRegister = async (payload) => {
+  await initSanctum();
+  const res = await axios.post("/api/auth/register", payload, { withCredentials: true });
+  return res.data;
+};
 
-export const apiLogin = (payload) =>
-  axios.post("/api/auth/login", payload).then((r) => r.data);
+export const apiLogin = async (payload) => {
+  const res = await axios.post("/api/auth/login", payload);
+  return res.data;
+};
 
 
+// Optional: Logout (if you add /api/auth/logout route in backend)
+export const apiLogout = async () => {
+  await initSanctum();
+  const res = await axios.post("/api/auth/logout", {}, { withCredentials: true });
+  return res.data;
+};
+
+// Check current authenticated user
+export const testAuth = () =>
+  axios.get("/api/test-auth", { withCredentials: true }).then((r) => r.data);
+
+// =======================
 
 // Pre-register user before payment
 export const preRegister = (payload) =>
@@ -39,7 +64,6 @@ export const setPassword = (payload) =>
 // Check email availability
 export const checkEmail = (email) =>
   axios.post("/api/auth/check-email", { email }).then((r) => r.data);
-
 
 // Stripe
 export const createStripeIntent = (payload) =>
