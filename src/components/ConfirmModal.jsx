@@ -11,7 +11,7 @@ const ConfirmModal = ({ open, title, onConfirm, onCancel, loading }) => {
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/80"
         onClick={onCancel}
         aria-hidden="true"
       />

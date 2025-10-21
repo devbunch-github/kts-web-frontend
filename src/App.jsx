@@ -37,6 +37,8 @@ import CategoryForm from "./pages/service/CategoryForm";
 
 import CustomerList from "./pages/customer/CustomerList";
 import CustomerForm from "./pages/customer/CustomerForm";
+import CustomerReviews from "./pages/customer/CustomerReviews";
+import CustomerGiftCardList from "./pages/customer/CustomerGiftCardList";
 
 import EmployeeIndex from "./pages/employee/EmployeeIndex";
 import EmployeeForm from "./pages/employee/EmployeeForm";
@@ -46,6 +48,9 @@ import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
 // ✅ New Appointment Pages
 import AppointmentIndex from "./pages/appointment/AppointmentIndex";
 import AppointmentForm from "./pages/appointment/AppointmentForm";
+
+
+import PaymentSettings from "./pages/payment/PaymentSettings";
 
 export default function App() {
   return (
@@ -62,7 +67,7 @@ export default function App() {
           <Route path="/payment-cancelled" element={<PaymentCancelled />} />
         </Route>
 
-        {/* Protected admin routes */}
+        {/* Protected SuperAdmin routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
@@ -119,6 +124,8 @@ export default function App() {
           <Route path="customers/new" element={<CustomerForm />} />
           <Route path="customers/edit/:id" element={<CustomerForm />} />
           <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
+          <Route path="customers/reviews" element={<CustomerReviews />} />
+          <Route path="customers/gift-cards" element={<CustomerGiftCardList />} />
 
           {/* Employees */}
           <Route path="employees" element={<EmployeeIndex />} />
@@ -131,6 +138,9 @@ export default function App() {
           <Route path="appointments" element={<AppointmentIndex />} />
           <Route path="appointments/new" element={<AppointmentForm />} />
           <Route path="appointments/:id/edit" element={<AppointmentForm />} />
+
+          {/* Payment */}
+          <Route path="payment" element={<PaymentSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

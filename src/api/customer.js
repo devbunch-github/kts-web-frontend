@@ -14,3 +14,19 @@ export const updateCustomer = (id, payload) =>
 
 export const deleteCustomer = (id) =>
   axios.delete(`/api/admin/customers/${id}`).then((r) => r.data);
+
+// Get all reviews
+export const getCustomerReviews = () =>
+  axios.get("/api/admin/customer/reviews").then((r) => r.data);
+
+// Update single status
+export const updateCustomerReviewStatus = (id, status) =>
+  axios.post(`/api/admin/customer/reviews/${id}/status`, { status }).then((r) => r.data);
+
+// Bulk update
+export const bulkUpdateCustomerReviewStatus = (ids, status) =>
+  axios.post("/api/admin/customer/reviews/bulk-status", { ids, status }).then((r) => r.data);
+
+// Delete review
+export const deleteCustomerReview = (id) =>
+  axios.delete(`/api/admin/customer/reviews/${id}`).then((r) => r.data);
