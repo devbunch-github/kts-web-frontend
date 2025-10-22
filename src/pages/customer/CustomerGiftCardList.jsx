@@ -42,7 +42,7 @@ export default function CustomerGiftCardList() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f5f4] font-[Inter] p-4 md:p-8">
+    <div className="min-h-screen bg-[#f9f5f4] p-4 md:p-8">
       <div className="max-w-6xl mx-auto bg-white shadow-md rounded-xl p-6">
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">

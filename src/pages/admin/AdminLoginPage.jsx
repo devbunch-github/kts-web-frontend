@@ -38,10 +38,10 @@ export default function AdminLoginPage() {
         localStorage.setItem("authToken", responseData.token);
         localStorage.setItem("apptlive_user", JSON.stringify(responseData.user));
 
-        const user = responseData.user;
+        const user = responseData.user_data;
         const redirectUrl = responseData.redirect_url || "/dashboard";
 
-        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(responseData.user));
         localStorage.setItem("userRole", user.role);
         localStorage.setItem("userPermissions", JSON.stringify(user.permissions));
 

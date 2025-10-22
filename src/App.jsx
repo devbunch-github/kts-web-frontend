@@ -52,6 +52,9 @@ import AppointmentForm from "./pages/appointment/AppointmentForm";
 
 import PaymentSettings from "./pages/payment/PaymentSettings";
 
+
+import SmsPackages from "./pages/smspackages/SmsPackages";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -134,13 +137,17 @@ export default function App() {
           <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
           <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
 
-          {/* ✅ Appointments */}
+          {/* Appointments */}
           <Route path="appointments" element={<AppointmentIndex />} />
           <Route path="appointments/new" element={<AppointmentForm />} />
           <Route path="appointments/:id/edit" element={<AppointmentForm />} />
 
           {/* Payment */}
           <Route path="payment" element={<PaymentSettings />} />
+
+          {/* SMS Packages */}
+          <Route path="sms-packages" element={<SmsPackages />} />
+          
         </Route>
       </Routes>
     </BrowserRouter>
