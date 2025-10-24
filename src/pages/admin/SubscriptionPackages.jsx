@@ -14,6 +14,7 @@ const SubscriptionPackages = () => {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [message, setMessage] = useState({ type: "", text: "" });
     const nav = useNavigate();
 
 
@@ -33,24 +34,6 @@ const SubscriptionPackages = () => {
         }
     };
 
-    const handleConfirmDelete = async () => {
-        if (!deletingId) return;
-        setDeleting(true);
-        try {
-            await deleteSubscriptionPackage(deletingId);
-            // refresh list
-            fetchPlans(); // your existing refetch fn
-        } catch (e) {
-            alert(e?.response?.data?.message || "Delete failed.");
-        } finally {
-            setDeleting(false);
-            setConfirmOpen(false);
-            setDeletingId(null);
-        }
-    };
-
-  // Fetch plans from Laravel API
-  useEffect(() => {
     const fetchPlans = async () => {
       try {
         const data = await getSubscriptionPlans();
@@ -61,8 +44,43 @@ const SubscriptionPackages = () => {
         setLoading(false);
       }
     };
+  // Fetch plans from Laravel API
+  useEffect(() => {
     fetchPlans();
   }, []);
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const res = await deleteSubscriptionPackage(deletingId);
+
+      // Axios auto-unpacks r.data; so check success flag or HTTP status
+      if (res?.success || res?.message) {
+        setMessage({
+          type: "success",
+          text: res.message || "Package deleted successfully.",
+        });
+        await fetchPlans();
+      } else {
+        throw new Error(res?.message || "Unexpected response.");
+      }
+    } catch (e) {
+      console.error("Delete error:", e);
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Delete failed.";
+      setMessage({ type: "error", text: msg });
+    } finally {
+      setDeleting(false);
+      setConfirmOpen(false);
+      setDeletingId(null);
+      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+    }
+  };
 
   // Filter search
   const filteredPlans = useMemo(() => {
@@ -110,6 +128,18 @@ const SubscriptionPackages = () => {
               + Add Package
             </button>
           </div>
+
+          {message.text && (
+            <div
+              className={`mb-4 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                message.type === "success"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-rose-50 text-rose-700 border border-rose-200"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
 
           {/* Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
@@ -240,6 +270,18 @@ const SubscriptionPackages = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => { setConfirmOpen(false); setDeletingId(null); }}
         loading={deleting}
+        />
+
+        <ConfirmModal
+          open={confirmOpen}
+          title="Are you sure you want to delete this package?"
+          message="By deleting this package, all users subscribed to it will have their subscriptions cancelled automatically. Do you want to proceed?"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setDeletingId(null);
+          }}
+          loading={deleting}
         />
 
       <AdminFooter />

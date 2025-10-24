@@ -27,6 +27,7 @@ export default function DashboardLayout() {
     { name: "Appointment", path: "/dashboard/appointments" },
     { name: "Payment", path: "/dashboard/payment" },
     { name: "SMS Packages", path: "/dashboard/sms-packages" },
+    { name: "Accountant", path: "/dashboard/accountant" },
     { name: "Settings", path: "/dashboard/settings" },
   ];
 

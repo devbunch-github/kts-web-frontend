@@ -188,7 +188,9 @@ const SubscribersList = () => {
                       const nextPay  = fmtDate(s.starts_at);
                       const expiry   = fmtDate(s.ends_at);
 
-                      const isCancelled = (s.status || "").toLowerCase() === "cancelled";
+                      const isCancelled =
+                        (s.status && s.status.toLowerCase() === "cancelled") ||
+                        Boolean(s.ends_at);
 
                       return (
                         <tr key={s.id} className="border-b border-gray-100 hover:bg-rose-50/40 transition">

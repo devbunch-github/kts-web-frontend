@@ -54,6 +54,16 @@ import PaymentSettings from "./pages/payment/PaymentSettings";
 
 
 import SmsPackages from "./pages/smspackages/SmsPackages";
+import SmsPackagePayment from "./pages/smspackages/SmsPackagePayment";
+
+
+import Accountant from "./pages/accountant/Accountant";
+import AddAccountant from "./pages/accountant/AddAccountant";
+
+// Accountant Dashboard
+import AccountantLayout from "./layouts/AccountantLayout";
+import AccountantLogin from "./pages/accountantdashboard/AccountantLogin";
+import AccountantDashboard from "./pages/accountantdashboard/AccountantDashboard";
 
 export default function App() {
   return (
@@ -147,7 +157,28 @@ export default function App() {
 
           {/* SMS Packages */}
           <Route path="sms-packages" element={<SmsPackages />} />
+          <Route path="sms-packages/payment/:id" element={<SmsPackagePayment />} />
+
+          {/* Accountant */}
+          <Route path="/dashboard/accountant" element={<Accountant />} />
+          <Route path="/dashboard/accountant/add" element={<AddAccountant />} />
+          <Route path="/dashboard/accountant/edit/:id" element={<AddAccountant />} />
           
+        </Route>
+
+        {/* Protected Accountant Routes */}
+        <Route path="/accountant/login" element={<AccountantLogin />} />  
+        <Route
+          element={<ProtectedRoute allowedRoles={["accountant"]} />}
+        >
+          <Route path="/accountant" element={<AccountantLayout />}>
+            <Route index element={<AccountantDashboard />} />
+            <Route path="dashboard" element={<AccountantDashboard />} />
+            {/* <Route index element={<div>Dashboard</div>} /> */}
+            <Route path="dashboard" element={<div>Dashboard</div>} />
+            <Route path="income" element={<div>Income Page</div>} />
+            <Route path="expense" element={<div>Expense Page</div>} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
