@@ -1,93 +1,142 @@
 import { useEffect, useState } from "react";
 import { getSmsPackages } from "../../api/sms";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function SmsPackages() {
   const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const [smsReminderEnabled, setSmsReminderEnabled] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPackages = async () => {
       try {
         const res = await getSmsPackages();
         if (res?.success && Array.isArray(res.data)) {
           setPackages(res.data);
-        } else {
-          setMessage({ text: "No packages found.", type: "error" });
+
+          // ✅ Only activate a plan if redirected after payment
+          if (location?.state?.activatedPackageId) {
+            setActiveId(location.state.activatedPackageId);
+          } else {
+            setActiveId(null); // ✅ explicitly reset if no redirect
+          }
         }
       } catch (err) {
-        console.error(err);
-        setMessage({ text: "Failed to load SMS Packages.", type: "error" });
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch SMS packages", err);
       }
     };
-    fetchData();
-  }, []);
 
-  const handleChoosePlan = (pkg) => {
-    setMessage({ text: `You selected ${pkg.name} plan.`, type: "success" });
-    setTimeout(() => setMessage(null), 3000);
+    fetchPackages();
+  }, [location?.state]);
+
+  const handleChoosePlan = (pkgId) => {
+    navigate(`/dashboard/sms-packages/payment/${pkgId}`);
+  };
+
+  const toggleSmsReminder = () => {
+    setSmsReminderEnabled((prev) => !prev);
   };
 
   return (
-    <div className="min-h-screen bg-[#faf7f7]">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
+    <div className="min-h-screen bg-[#faf7f7] p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-10">
-          <div className="bg-rose-100 text-rose-500 p-2 rounded-lg">
-            <i className="bi bi-chat-dots text-lg"></i>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="bg-rose-100 p-2 rounded-lg">
+            <i className="bi bi-chat-left-text text-rose-500 text-lg"></i>
           </div>
-          <h2 className="text-[22px] font-semibold text-gray-800">SMS Packages</h2>
+          <h1 className="text-[22px] font-semibold text-gray-800">
+            SMS Packages
+          </h1>
         </div>
 
-        {/* Message */}
-        {message && (
-          <div
-            className={`mb-5 p-3 rounded-md text-sm font-medium border text-center ${
-              message.type === "success"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-red-50 text-red-700 border-red-200"
-            }`}
-          >
-            {message.text}
+        {/* ✅ Show SMS Reminder toggle only if user has active plan */}
+        {activeId && (
+          <div className="flex items-center gap-3 mb-8">
+            <span className="font-medium text-gray-800">SMS Reminders</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={smsReminderEnabled}
+                onChange={toggleSmsReminder}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#b77272] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+            <p className="text-sm text-gray-500">
+              Select to enable SMS reminders for appointments. This will use SMS
+              credits from your purchased package.
+            </p>
           </div>
         )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages.map((pkg) => (
+        {/* Package Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {packages.map((pkg) => {
+            const isActive = activeId && pkg.id === activeId; // ✅ strictly require redirect-based id
+
+            return (
               <div
                 key={pkg.id}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 text-center p-8 flex flex-col justify-between"
+                className={`relative rounded-2xl border p-6 text-center shadow-sm transition hover:shadow-md ${
+                  isActive
+                    ? "border-[#b77272] bg-white"
+                    : "border-gray-200 bg-white"
+                }`}
               >
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">{pkg.name}</h3>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">
-                    £{parseFloat(pkg.price).toFixed(2)}
-                  </div>
-                  <p className="text-gray-500 text-sm mb-5">
-                    {pkg.total_sms} SMS/month
-                  </p>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                    {pkg.description ||
-                      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
-                  </p>
-                </div>
+                {/* ✅ Only show Active badge when truly purchased */}
+                {isActive && (
+                  <span className="absolute top-0 left-0 bg-[#b77272] text-white text-xs px-4 py-1 rounded-tl-2xl rounded-br-2xl">
+                    Active
+                  </span>
+                )}
 
-                <button
-                  onClick={() => handleChoosePlan(pkg)}
-                  className="bg-[#e88a8a] hover:bg-[#d46b6b] text-white px-6 py-2.5 rounded-md font-medium transition-all duration-200 w-fit mx-auto"
-                >
-                  Choose Plan
-                </button>
+                <h3 className="text-lg font-semibold text-gray-800 mt-4">
+                  {pkg.name}
+                </h3>
+                <p className="text-3xl font-bold text-gray-900 mt-2 mb-1">
+                  £{parseFloat(pkg.price).toFixed(0)}
+                </p>
+                <p className="text-gray-500 mb-4">
+                  {pkg.total_sms} SMS/month
+                </p>
+
+                <p className="text-gray-500 text-sm mb-6 px-2">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+                  do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                </p>
+
+                {!activeId ? (
+                  // 🆕 No active plan yet
+                  <button
+                    onClick={() => handleChoosePlan(pkg.id)}
+                    className="border border-[#b77272] text-[#b77272] font-medium rounded-md px-6 py-2 hover:bg-[#b77272]/10 transition"
+                  >
+                    Choose Plan
+                  </button>
+                ) : isActive ? (
+                  // ✅ Current active plan
+                  <button
+                    disabled
+                    className="bg-[#b77272] text-white font-medium rounded-md px-6 py-2 cursor-default opacity-90"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  // 🔼 Any other plan
+                  <button
+                    onClick={() => handleChoosePlan(pkg.id)}
+                    className="border border-[#b77272] text-[#b77272] font-medium rounded-md px-6 py-2 hover:bg-[#b77272]/10 transition"
+                  >
+                    Upgrade Plan
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

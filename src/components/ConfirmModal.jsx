@@ -1,6 +1,6 @@
 import React from "react";
 
-const ConfirmModal = ({ open, title, onConfirm, onCancel, loading }) => {
+const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading }) => {
   if (!open) return null;
 
   return (
@@ -22,6 +22,9 @@ const ConfirmModal = ({ open, title, onConfirm, onCancel, loading }) => {
           <h3 className="text-[18px] font-semibold text-gray-900">
             {title || "Are you sure you want to delete this package?"}
           </h3>
+          {message && (
+            <p className="text-gray-600 text-sm mt-3">{message}</p>
+          )}
         </div>
 
         <div className="mt-8 flex items-center justify-center gap-4">
