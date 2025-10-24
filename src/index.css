@@ -5,6 +5,56 @@
 /* Typography (matches design) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
+
+/* FullCalendar overrides for appt.live look */
+
+.fc {
+  background-color: #fff;
+  border-radius: 0.75rem;
+}
+
+/* Header buttons */
+.fc .fc-button-primary {
+  background-color: #374151 !important; /* dark gray */
+  border: none !important;
+  font-weight: 500;
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: #111827 !important;
+}
+.fc .fc-toolbar-title {
+  color: #374151;
+  font-weight: 500;
+  font-size: 1.25rem;
+}
+
+/* Event block */
+.fc-event {
+  background-color: #b96f6f !important; /* rose tone */
+  border: none !important;
+  color: #fff !important;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  padding: 2px 6px;
+}
+
+/* Grid lines & time labels */
+.fc-timegrid-slot-label {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .fc-toolbar-title {
+    font-size: 1rem;
+  }
+  .fc-timegrid-slot-label {
+    font-size: 0.75rem;
+  }
+}
+
+
 :root{
   /* Brand palette from design */
   --rose-1:#f2b9bf;

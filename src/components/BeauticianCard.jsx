@@ -40,7 +40,7 @@ export default function BeauticianCard({ item }) {
               fill="currentColor"
             />
           </svg>
-          <span className="truncate">{item?.location ?? "—"}</span>
+          <span className="truncate">{item?.address ?? "—"}</span>
         </div>
 
         <div className="mt-2 flex items-center gap-1 text-[14px]">

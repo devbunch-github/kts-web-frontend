@@ -57,6 +57,15 @@ export default function SetPasswordPage() {
         // ✅ Save user session
         if (res.data.user) {
           localStorage.setItem("apptlive_user", JSON.stringify(res.data.user));
+
+
+          localStorage.setItem("authToken", res.data.token);
+
+          const user = res.data.user_data;
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+          localStorage.setItem("userRole", user.role);
+          localStorage.setItem("userPermissions", JSON.stringify(user.permissions));
+
           window.dispatchEvent(new Event("user-login"));
         }
 

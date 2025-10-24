@@ -49,11 +49,11 @@ import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
 import AppointmentIndex from "./pages/appointment/AppointmentIndex";
 import AppointmentForm from "./pages/appointment/AppointmentForm";
 
-
 import PaymentSettings from "./pages/payment/PaymentSettings";
-
-
 import SmsPackages from "./pages/smspackages/SmsPackages";
+
+import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
+
 
 export default function App() {
   return (
@@ -72,7 +72,7 @@ export default function App() {
 
         {/* Protected SuperAdmin routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/income" element={<AdminIncomePage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -97,58 +97,60 @@ export default function App() {
         <Route path="*" element={<Navigate to="/admin/login" replace />} />
 
         {/* Business Dashboard Routes */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          {/* Default */}
-          <Route index element={<IncomeIndex />} />
+        <Route element={<ProtectedRoute allowedRoles={['business_admin', 'business']} />}>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            {/* Default */}
+            <Route index element={<BusinessDashboard />} />
 
-          {/* Income */}
-          <Route path="income" element={<IncomeIndex />} />
-          <Route path="income/new" element={<IncomeForm />} />
-          <Route path="income/:id/edit" element={<IncomeForm />} />
-          <Route path="income/:id" element={<IncomeView />} />
+            {/* Income */}
+            <Route path="income" element={<IncomeIndex />} />
+            <Route path="income/new" element={<IncomeForm />} />
+            <Route path="income/:id/edit" element={<IncomeForm />} />
+            <Route path="income/:id" element={<IncomeView />} />
 
-          {/* Expense */}
-          <Route path="expense" element={<ExpenseIndex />} />
-          <Route path="expense/new" element={<ExpenseForm />} />
-          <Route path="expense/:id/edit" element={<ExpenseForm />} />
-          <Route path="expense/:id" element={<ExpenseView />} />
+            {/* Expense */}
+            <Route path="expense" element={<ExpenseIndex />} />
+            <Route path="expense/new" element={<ExpenseForm />} />
+            <Route path="expense/:id/edit" element={<ExpenseForm />} />
+            <Route path="expense/:id" element={<ExpenseView />} />
 
-          {/* Services */}
-          <Route path="services" element={<ServiceIndex />} />
-          <Route path="services/new" element={<ServiceForm />} />
-          <Route path="services/:id/edit" element={<ServiceForm />} />
+            {/* Services */}
+            <Route path="services" element={<ServiceIndex />} />
+            <Route path="services/new" element={<ServiceForm />} />
+            <Route path="services/:id/edit" element={<ServiceForm />} />
 
-          {/* Categories */}
-          <Route path="services/categories/new" element={<CategoryForm />} />
-          <Route path="services/categories/:id/edit" element={<CategoryForm />} />
+            {/* Categories */}
+            <Route path="services/categories/new" element={<CategoryForm />} />
+            <Route path="services/categories/:id/edit" element={<CategoryForm />} />
 
-          {/* Customers */}
-          <Route path="customers" element={<CustomerList />} />
-          <Route path="customers/new" element={<CustomerForm />} />
-          <Route path="customers/edit/:id" element={<CustomerForm />} />
-          <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
-          <Route path="customers/reviews" element={<CustomerReviews />} />
-          <Route path="customers/gift-cards" element={<CustomerGiftCardList />} />
+            {/* Customers */}
+            <Route path="customers" element={<CustomerList />} />
+            <Route path="customers/new" element={<CustomerForm />} />
+            <Route path="customers/edit/:id" element={<CustomerForm />} />
+            <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
+            <Route path="customers/reviews" element={<CustomerReviews />} />
+            <Route path="customers/gift-cards" element={<CustomerGiftCardList />} />
 
-          {/* Employees */}
-          <Route path="employees" element={<EmployeeIndex />} />
-          <Route path="employees/new" element={<EmployeeForm />} />
-          <Route path="employees/:id/edit" element={<EmployeeForm />} />
-          <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
-          <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
+            {/* Employees */}
+            <Route path="employees" element={<EmployeeIndex />} />
+            <Route path="employees/new" element={<EmployeeForm />} />
+            <Route path="employees/:id/edit" element={<EmployeeForm />} />
+            <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
+            <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
 
-          {/* Appointments */}
-          <Route path="appointments" element={<AppointmentIndex />} />
-          <Route path="appointments/new" element={<AppointmentForm />} />
-          <Route path="appointments/:id/edit" element={<AppointmentForm />} />
+            {/* Appointments */}
+            <Route path="appointments" element={<AppointmentIndex />} />
+            <Route path="appointments/new" element={<AppointmentForm />} />
+            <Route path="appointments/:id/edit" element={<AppointmentForm />} />
 
-          {/* Payment */}
-          <Route path="payment" element={<PaymentSettings />} />
+            {/* Payment */}
+            <Route path="payment" element={<PaymentSettings />} />
 
-          {/* SMS Packages */}
-          <Route path="sms-packages" element={<SmsPackages />} />
-          
+            {/* SMS Packages */}
+            <Route path="sms-packages" element={<SmsPackages />} />
+          </Route>
         </Route>
+
       </Routes>
     </BrowserRouter>
   );

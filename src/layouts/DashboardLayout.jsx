@@ -1,10 +1,10 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import SetupBusinessModal from "@/components/SetupBusinessModal";
 
 export default function DashboardLayout() {
   const location = useLocation();
-  const [open, setOpen] = useState(true);
   const [openCustomer, setOpenCustomer] = useState(false);
 
   const menu = [
@@ -40,13 +40,12 @@ export default function DashboardLayout() {
 
         <nav className="space-y-1">
           {menu.map((item) => {
-            // handle customer submenu separately
             if (item.hasChildren) {
               const isParentActive = location.pathname.startsWith(item.path);
               return (
                 <div key={item.path} className="flex flex-col">
                   <button
-                    onClick={() => setOpenCustomer((prev) => !prev)}
+                    onClick={() => setOpenCustomer((p) => !p)}
                     className={`flex items-center justify-between w-full px-3 py-2 rounded-lg font-medium transition-colors ${
                       isParentActive
                         ? "bg-rose-100 text-rose-700"
@@ -85,7 +84,6 @@ export default function DashboardLayout() {
               );
             }
 
-            // normal menu item
             return (
               <Link
                 key={item.path}
@@ -105,8 +103,9 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto relative">
         <Outlet />
+        <SetupBusinessModal /> {/* 🔹 shows when no beautician setup */}
       </main>
     </div>
   );

@@ -30,11 +30,20 @@ export default function Header() {
   }, []);
 
   const handleLogout = () => {
+    // Remove ALL auth data
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userPermissions");
     localStorage.removeItem("apptlive_user");
-    setUser(null);
+
+    // Notify any component using event listeners
     window.dispatchEvent(new Event("user-logout"));
-    navigate("/");
+
+    // Redirect to login (or homepage)
+    navigate("/login", { replace: true });
   };
+
 
   const menuItems = [
     { name: "Home", path: "/" },
