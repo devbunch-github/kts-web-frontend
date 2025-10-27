@@ -1,4 +1,6 @@
-import { BrowserRouter, Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import ContactPage from "./pages/ContactPage";
@@ -45,7 +47,6 @@ import EmployeeForm from "./pages/employee/EmployeeForm";
 import EmployeeSchedule from "./pages/employee/EmployeeSchedule";
 import EmployeeCalendar from "./pages/employee/EmployeeCalendar";
 
-// ✅ New Appointment Pages
 import AppointmentIndex from "./pages/appointment/AppointmentIndex";
 import AppointmentForm from "./pages/appointment/AppointmentForm";
 
@@ -56,131 +57,138 @@ import SmsPackagePayment from "./pages/smspackages/SmsPackagePayment";
 import Accountant from "./pages/accountant/Accountant";
 import AddAccountant from "./pages/accountant/AddAccountant";
 
-
-// Accountant Dashboard
 import AccountantLayout from "./layouts/AccountantLayout";
 import AccountantLogin from "./pages/accountantdashboard/AccountantLogin";
 import AccountantDashboard from "./pages/accountantdashboard/AccountantDashboard";
 import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
 
-
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public + Subscription Routes */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/subscription" element={<PlansPage />} />
-          <Route path="/subscription/payment" element={<PaymentPage />} />
-          <Route path="/subscription/confirm" element={<ConfirmPage />} />
-          <Route path="/subscription/set-password" element={<SetPasswordPage />} />
-          <Route path="/payment-cancelled" element={<PaymentCancelled />} />
-        </Route>
+    <>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/subscription" element={<PlansPage />} />
+            <Route path="/subscription/payment" element={<PaymentPage />} />
+            <Route path="/subscription/confirm" element={<ConfirmPage />} />
+            <Route path="/subscription/set-password" element={<SetPasswordPage />} />
+            <Route path="/payment-cancelled" element={<PaymentCancelled />} />
+          </Route>
 
-        {/* Protected SuperAdmin routes */}
+          {/* Super Admin Routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/income" element={<AdminIncomePage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/income/:id" element={<AdminIncomePage />} />
-          <Route path="/admin/expense/:id" element={<AdminExpensePage />} />
-          <Route path="/admin/payment-settings" element={<PaymentSettingsPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/income" element={<AdminIncomePage />} />
+            <Route path="/admin/income/:id" element={<AdminIncomePage />} />
+            <Route path="/admin/expense/:id" element={<AdminExpensePage />} />
+            <Route path="/admin/payment-settings" element={<PaymentSettingsPage />} />
 
-          <Route path="/admin/sms-packages" element={<SmsPackagesPage />} />
-          <Route path="/admin/sms-packages/add" element={<AddSmsPackagePage />} />
-          <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />   
-          <Route path="/admin/sms-subscriptions" element={<SmsSubscriptionListPage />} />
-          <Route path="/admin/sms-purchase-balance" element={<SmsPurchaseBalancePage />} />
-          <Route path="/admin/subscription" element={<SubscriptionPackages />} />
-          <Route path="/admin/subscription/add" element={<AddSubscriptionPackage />} />
-          <Route path="/admin/subscription/edit/:id" element={<AddSubscriptionPackage />} />
-          <Route path="/admin/subscription/subscribers" element={<SubscribersList />} />
-        </Route>
-
-        {/* Unauthorized and fallback */}
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="*" element={<Navigate to="/admin/login" replace />} />
-
-        {/* Business Dashboard Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['business_admin', 'business']} />}>
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            {/* Default */}
-            <Route index element={<BusinessDashboard />} />
-
-            {/* Income */}
-            <Route path="income" element={<IncomeIndex />} />
-            <Route path="income/new" element={<IncomeForm />} />
-            <Route path="income/:id/edit" element={<IncomeForm />} />
-            <Route path="income/:id" element={<IncomeView />} />
-
-            {/* Expense */}
-            <Route path="expense" element={<ExpenseIndex />} />
-            <Route path="expense/new" element={<ExpenseForm />} />
-            <Route path="expense/:id/edit" element={<ExpenseForm />} />
-            <Route path="expense/:id" element={<ExpenseView />} />
-
-            {/* Services */}
-            <Route path="services" element={<ServiceIndex />} />
-            <Route path="services/new" element={<ServiceForm />} />
-            <Route path="services/:id/edit" element={<ServiceForm />} />
-
-            {/* Categories */}
-            <Route path="services/categories/new" element={<CategoryForm />} />
-            <Route path="services/categories/:id/edit" element={<CategoryForm />} />
-
-            {/* Customers */}
-            <Route path="customers" element={<CustomerList />} />
-            <Route path="customers/new" element={<CustomerForm />} />
-            <Route path="customers/edit/:id" element={<CustomerForm />} />
-            <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
-            <Route path="customers/reviews" element={<CustomerReviews />} />
-            <Route path="customers/gift-cards" element={<CustomerGiftCardList />} />
-
-            {/* Employees */}
-            <Route path="employees" element={<EmployeeIndex />} />
-            <Route path="employees/new" element={<EmployeeForm />} />
-            <Route path="employees/:id/edit" element={<EmployeeForm />} />
-            <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
-            <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
-
-            {/* Appointments */}
-            <Route path="appointments" element={<AppointmentIndex />} />
-            <Route path="appointments/new" element={<AppointmentForm />} />
-            <Route path="appointments/:id/edit" element={<AppointmentForm />} />
-
-            {/* Payment */}
-            <Route path="payment" element={<PaymentSettings />} />
-
-            {/* SMS Packages */}
-            <Route path="sms-packages/payment/:id" element={<SmsPackagePayment />} />
-
-            {/* Accountant */}
-            <Route path="/dashboard/accountant" element={<Accountant />} />
-            <Route path="/dashboard/accountant/add" element={<AddAccountant />} />
-            <Route path="/dashboard/accountant/edit/:id" element={<AddAccountant />} />
+            <Route path="/admin/sms-packages" element={<SmsPackagesPage />} />
+            <Route path="/admin/sms-packages/add" element={<AddSmsPackagePage />} />
+            <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />
+            <Route path="/admin/sms-subscriptions" element={<SmsSubscriptionListPage />} />
+            <Route path="/admin/sms-purchase-balance" element={<SmsPurchaseBalancePage />} />
+            <Route path="/admin/subscription" element={<SubscriptionPackages />} />
+            <Route path="/admin/subscription/add" element={<AddSubscriptionPackage />} />
+            <Route path="/admin/subscription/edit/:id" element={<AddSubscriptionPackage />} />
+            <Route path="/admin/subscription/subscribers" element={<SubscribersList />} />
           </Route>
-        </Route>
 
-        {/* Protected Accountant Routes */}
-        <Route path="/accountant/login" element={<AccountantLogin />} />  
-        <Route element={<ProtectedRoute allowedRoles={["accountant"]} />}>
+          {/* Unauthorized */}
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="*" element={<Navigate to="/admin/login" replace />} />
 
-          <Route path="/accountant" element={<AccountantLayout />}>
-            <Route index element={<AccountantDashboard />} />
-            <Route path="dashboard" element={<AccountantDashboard />} />
+          {/* Business Dashboard Routes */}
+          <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<BusinessDashboard />} />
 
-            {/* <Route index element={<div>Dashboard</div>} /> */}
-            <Route path="dashboard" element={<div>Dashboard</div>} />
-            <Route path="income" element={<div>Income Page</div>} />
-            <Route path="expense" element={<div>Expense Page</div>} />
+              {/* Income */}
+              <Route path="income" element={<IncomeIndex />} />
+              <Route path="income/new" element={<IncomeForm />} />
+              <Route path="income/:id/edit" element={<IncomeForm />} />
+              <Route path="income/:id" element={<IncomeView />} />
+
+              {/* Expense */}
+              <Route path="expense" element={<ExpenseIndex />} />
+              <Route path="expense/new" element={<ExpenseForm />} />
+              <Route path="expense/:id/edit" element={<ExpenseForm />} />
+              <Route path="expense/:id" element={<ExpenseView />} />
+
+              {/* Services */}
+              <Route path="services" element={<ServiceIndex />} />
+              <Route path="services/new" element={<ServiceForm />} />
+              <Route path="services/:id/edit" element={<ServiceForm />} />
+
+              {/* Categories */}
+              <Route path="services/categories/new" element={<CategoryForm />} />
+              <Route path="services/categories/:id/edit" element={<CategoryForm />} />
+
+              {/* Customers */}
+              <Route path="customers" element={<CustomerList />} />
+              <Route path="customers/new" element={<CustomerForm />} />
+              <Route path="customers/edit/:id" element={<CustomerForm />} />
+              <Route path="customers/view/:id" element={<CustomerForm viewOnly={true} />} />
+              <Route path="customers/reviews" element={<CustomerReviews />} />
+              <Route path="customers/gift-cards" element={<CustomerGiftCardList />} />
+
+              {/* Employees */}
+              <Route path="employees" element={<EmployeeIndex />} />
+              <Route path="employees/new" element={<EmployeeForm />} />
+              <Route path="employees/:id/edit" element={<EmployeeForm />} />
+              <Route path="employees/:id/schedule" element={<EmployeeSchedule />} />
+              <Route path="employees/:id/calendar" element={<EmployeeCalendar />} />
+
+              {/* Appointments */}
+              <Route path="appointments" element={<AppointmentIndex />} />
+              <Route path="appointments/new" element={<AppointmentForm />} />
+              <Route path="appointments/:id/edit" element={<AppointmentForm />} />
+
+              {/* Payment */}
+              <Route path="payment" element={<PaymentSettings />} />
+
+              {/* SMS Packages */}
+              <Route path="sms-packages/payment/:id" element={<SmsPackagePayment />} />
+
+              {/* Accountant */}
+              <Route path="accountant" element={<Accountant />} />
+              <Route path="accountant/add" element={<AddAccountant />} />
+              <Route path="accountant/edit/:id" element={<AddAccountant />} />
+            </Route>
           </Route>
-        </Route>
 
-      </Routes>
-    </BrowserRouter>
+          {/* Accountant Routes */}
+          <Route path="/accountant/login" element={<AccountantLogin />} />
+          <Route element={<ProtectedRoute allowedRoles={["accountant"]} />}>
+            <Route path="/accountant" element={<AccountantLayout />}>
+              <Route index element={<AccountantDashboard />} />
+              <Route path="dashboard" element={<AccountantDashboard />} />
+              <Route path="income" element={<div>Income Page</div>} />
+              <Route path="expense" element={<div>Expense Page</div>} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+
+      {/* ✅ Toaster */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            borderRadius: "12px",
+            background: "#fff",
+            color: "#333",
+            fontSize: "14px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          },
+          success: { iconTheme: { primary: "#c98383", secondary: "#fff" } },
+          error: { iconTheme: { primary: "#c98383", secondary: "#fff" } },
+        }}
+      />
+    </>
   );
 }

@@ -18,7 +18,7 @@ export default function DashboardLayout() {
       hasChildren: true,
       children: [
         { name: "Customer List", path: "/dashboard/customers" },
-        { name: "Appointment List", path: "/dashboard/customers/appointments" },
+        { name: "Appointment List", path: "/dashboard/appointments" },
         { name: "Reviews", path: "/dashboard/customers/reviews" },
         { name: "Gift Card List", path: "/dashboard/customers/gift-cards" },
       ],
