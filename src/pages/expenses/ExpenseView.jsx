@@ -7,12 +7,13 @@ export default function ExpenseView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [data, setData] = useState(null);
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [activeFile, setActiveFile] = useState(null);
 
   useEffect(() => {
     (async () => {
       const res = await getExpense(id);
-      setData(res?.data ?? res);
+      const expense = res?.data ?? res;
+      setData(expense);
     })();
   }, [id]);
 
@@ -25,11 +26,7 @@ export default function ExpenseView() {
       </div>
     );
 
-  const fileUrl = data.receipt_url
-    ? data.receipt_url
-    : data.receipt_id
-    ? `/api/files/${data.receipt_id}`
-    : null;
+  const files = Array.isArray(data.files) ? data.files : [];
 
   return (
     <div className="p-6 md:p-8 min-h-screen bg-[#faf8f8]">
@@ -54,7 +51,7 @@ export default function ExpenseView() {
               </th>
               <th className="px-5 py-3 text-left font-medium">Supplier</th>
               <th className="px-5 py-3 text-left font-medium">Amount</th>
-              <th className="px-5 py-3 text-left font-medium">File</th>
+              <th className="px-5 py-3 text-left font-medium">Files</th>
               <th className="px-5 py-3 text-left rounded-r-xl font-medium">
                 Note
               </th>
@@ -71,18 +68,36 @@ export default function ExpenseView() {
               <td className="px-5 py-4 text-[#333] font-medium">
                 £{Number(data.amount || 0).toFixed(2)}
               </td>
+
+              {/* File Thumbnails */}
               <td className="px-5 py-4">
-                {fileUrl ? (
-                  <button
-                    onClick={() => setShowReceipt(true)}
-                    className="text-[#C08080] underline hover:text-[#a96464]"
-                  >
-                    {data.file_name || "View File"}
-                  </button>
+                {files.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {files.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setActiveFile(f)}
+                        className="group relative border border-[#f0dede] rounded-lg overflow-hidden w-14 h-14 hover:scale-105 transition"
+                      >
+                        {f.url && f.url.match(/\.pdf$/i) ? (
+                          <div className="flex items-center justify-center h-full w-full bg-[#faf8f8] text-[#c98383]">
+                            <i className="bi bi-file-earmark-pdf text-lg"></i>
+                          </div>
+                        ) : (
+                          <img
+                            src={f.url}
+                            alt={f.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   "-"
                 )}
               </td>
+
               <td className="px-5 py-4 text-[#333] max-w-[400px] leading-relaxed">
                 {data.notes || "-"}
               </td>
@@ -92,49 +107,55 @@ export default function ExpenseView() {
       </div>
 
       {/* Modal for File Preview */}
-      {showReceipt && (
+      {activeFile && (
         <div
           className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-          onClick={() => setShowReceipt(false)}
+          onClick={() => setActiveFile(null)}
         >
           <div
-            className="relative bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col"
+            className="relative bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
-              onClick={() => setShowReceipt(false)}
-              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600"
+              onClick={() => setActiveFile(null)}
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 z-50"
             >
               ✕
             </button>
 
             {/* File Display */}
-            {fileUrl ? (
-              <iframe
-                src={fileUrl}
-                title="Receipt Preview"
-                className="flex-1 w-full rounded-b-2xl border-none mt-10"
-              ></iframe>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-600">
-                No file available.
-              </div>
-            )}
+            <div className="flex-1 overflow-auto flex items-center justify-center bg-[#faf8f8]">
+              {activeFile.url && activeFile.url.match(/\.pdf$/i) ? (
+                <iframe
+                  src={activeFile.url}
+                  title="Receipt Preview"
+                  className="w-full h-[85vh] border-none"
+                ></iframe>
+              ) : (
+                <img
+                  src={activeFile.url}
+                  alt={activeFile.name}
+                  className="max-h-[85vh] object-contain"
+                />
+              )}
+            </div>
 
-            {/* Download Button */}
-            {fileUrl && (
+            {/* Footer Buttons */}
+            <div className="bg-white border-t border-gray-200 p-3 flex justify-between items-center">
+              <span className="text-sm text-gray-600 truncate pr-4">
+                {activeFile.name}
+              </span>
               <a
-                href={fileUrl}
+                href={activeFile.url}
                 download
                 target="_blank"
                 rel="noreferrer"
-                className="text-center py-3 mt-4 rounded-b-2xl text-white font-medium hover:opacity-95 transition"
-                style={{ backgroundColor: "#C08080" }}
+                className="bg-[#C08080] text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition"
               >
-                Download File
+                Download
               </a>
-            )}
+            </div>
           </div>
         </div>
       )}

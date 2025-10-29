@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   createExpense,
   updateExpense,
   getExpense,
   listCategories,
   uploadReceipt,
+  deleteReceipt,
 } from "../../api/expense";
 import Spinner from "../../components/Spinner";
 
@@ -16,7 +18,7 @@ export default function ExpenseForm() {
 
   // ---------- State ----------
   const [categories, setCategories] = useState([]);
-  const [loadingForm, setLoadingForm] = useState(isEdit); // show loader only when editing
+  const [loadingForm, setLoadingForm] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -28,10 +30,12 @@ export default function ExpenseForm() {
     notes: "",
     payment_method: "Cash",
     receipt_id: "",
-    recurring: "", // '', 'weekly', 'fortnightly', '4_weeks', 'monthly'
+    recurring: "",
   });
 
-  const [fileName, setFileName] = useState("");
+  const [files, setFiles] = useState([]);
+  const [confirmFileId, setConfirmFileId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const showRecurring = useMemo(() => Boolean(form.recurring), [form.recurring]);
 
@@ -68,7 +72,7 @@ export default function ExpenseForm() {
             receipt_id: data.receipt_id ?? "",
             recurring: data.recurring ?? "",
           });
-          setFileName(data.receipt_name ?? ""); // if your API sends it
+          setFiles(data.files ?? []);
         } else {
           setForm((s) => ({
             ...s,
@@ -81,33 +85,87 @@ export default function ExpenseForm() {
     })();
   }, [id, isEdit]);
 
-  // ---------- File Upload ----------
-  const handleFile = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  // ---------- File Upload (Multiple with instant preview) ----------
+  const handleFiles = async (e) => {
+    const fileList = Array.from(e.target.files || []);
+    if (!fileList.length) return;
+
+    // Show instant previews before upload
+    const previewFiles = fileList.map((f) => ({
+      id: Math.random(),
+      name: f.name,
+      url: URL.createObjectURL(f),
+      isLocal: true,
+    }));
+    setFiles((prev) => [...prev, ...previewFiles]);
+
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          // Your API expects { formFile: [base64] }
-          const uploaded = await uploadReceipt({ formFile: [reader.result] });
-          // assume uploaded => { id: ... }
-          setVal("receipt_id", uploaded?.id ?? uploaded?.data?.id ?? "");
-          setFileName(f.name);
-        } finally {
-          setUploading(false);
-        }
-      };
-      reader.readAsDataURL(f);
-    } catch {
+      // Convert to Base64 for upload
+      const base64Array = await Promise.all(
+        fileList.map(
+          (f) =>
+            new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(f);
+            })
+        )
+      );
+
+      const uploaded = await uploadReceipt({
+        formFile: base64Array,
+        existing_receipt_id: form.receipt_id || 0,
+      });
+
+      // Update receipt group id
+      const newReceiptId = uploaded?.id ?? uploaded?.data?.id ?? "";
+      setVal("receipt_id", newReceiptId);
+
+      // Replace with actual URLs from backend response
+      if (uploaded?.files?.length) {
+        setFiles(uploaded.files);
+      } else if (isEdit) {
+        const r = await getExpense(id);
+        setFiles(r?.data?.files ?? []);
+      }
+
+      toast.success("Files uploaded successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("File upload failed");
+    } finally {
       setUploading(false);
     }
   };
 
-  const clearFile = () => {
-    setVal("receipt_id", "");
-    setFileName("");
+  // ---------- Cleanup local URLs ----------
+  useEffect(() => {
+    return () => {
+      files.forEach((f) => {
+        if (f.isLocal) URL.revokeObjectURL(f.url);
+      });
+    };
+  }, [files]);
+
+  // ---------- File Delete Flow ----------
+  const openConfirmFile = (fid) => setConfirmFileId(fid);
+  const closeConfirmFile = () => !deleting && setConfirmFileId(null);
+
+  const confirmDeleteFile = async () => {
+    if (!confirmFileId) return;
+    setDeleting(true);
+    try {
+      await deleteReceipt(confirmFileId);
+      setFiles((prev) => prev.filter((f) => f.id !== confirmFileId));
+      toast.success("File deleted.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to delete file.");
+    } finally {
+      setDeleting(false);
+      setConfirmFileId(null);
+    }
   };
 
   // ---------- Save ----------
@@ -119,14 +177,14 @@ export default function ExpenseForm() {
         ...form,
         category_id: form.category_id ? Number(form.category_id) : null,
         amount: Number(form.amount || 0),
-        paid_date_time: form.paid_date_time, // 'YYYY-MM-DD'
-        // payment_method kept as-is ("Cash" | "Bank")
       };
-
       if (isEdit) await updateExpense(id, payload);
       else await createExpense(payload);
-
+      toast.success("Expense saved successfully");
       navigate("/dashboard/expense");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save expense");
     } finally {
       setSaving(false);
     }
@@ -134,7 +192,7 @@ export default function ExpenseForm() {
 
   // ---------- UI ----------
   return (
-    <div className="p-6 min-h-screen bg-[#faf8f8]">
+    <div className="p-6 min-h-screen bg-[#faf8f8] relative">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
@@ -161,7 +219,7 @@ export default function ExpenseForm() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Select Category */}
+              {/* Category */}
               <div>
                 <label className="block text-sm text-[#333] mb-2">
                   Select Category
@@ -203,7 +261,7 @@ export default function ExpenseForm() {
                   placeholder="e.g. £87.00"
                   value={form.amount}
                   onChange={(e) => setVal("amount", e.target.value)}
-                  className="w-full h-[48px] px-3 rounded-xl border border-[#e8e2e2] bg-white focus:ring-1 focus:ring-[#c98383]/70 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-full h-[48px] px-3 rounded-xl border border-[#e8e2e2] bg-white focus:ring-1 focus:ring-[#c98383]/70 outline-none [appearance:textfield]"
                   required
                 />
               </div>
@@ -222,51 +280,76 @@ export default function ExpenseForm() {
                 />
               </div>
 
-              {/* Upload */}
-              <div className="md:col-span-1">
+              {/* Upload (Multi) */}
+              <div className="md:col-span-2">
                 <label className="block text-sm text-[#333] mb-2">
-                  Attach a file
+                  Attach Files
                 </label>
-                <div className="border border-[#e8e2e2] rounded-xl overflow-hidden">
-                  <label className="w-full h-[84px] flex items-center justify-center gap-3 cursor-pointer hover:bg-[#faf7f7]">
+                <div className="border border-[#e8e2e2] rounded-xl p-4 bg-[#fffafa]">
+                  <label className="flex items-center justify-center gap-3 cursor-pointer hover:bg-[#faf7f7] rounded-lg p-3 border border-dashed border-[#e8e2e2]">
                     <input
                       type="file"
                       className="hidden"
-                      onChange={handleFile}
+                      multiple
+                      onChange={handleFiles}
                       accept="image/*,.pdf,.jpg,.jpeg,.png"
                     />
                     {uploading ? (
                       <span className="inline-flex items-center gap-2 text-[#333]">
                         <Spinner className="h-4 w-4" /> Uploading…
                       </span>
-                    ) : fileName ? (
-                      <span className="text-sm text-[#333] truncate max-w-[70%]">
-                        {fileName}
-                      </span>
                     ) : (
                       <>
                         <i className="bi bi-paperclip text-[#c98383] text-lg"></i>
-                        <span className="text-sm text-[#666]">Upload file</span>
+                        <span className="text-sm text-[#666]">
+                          Click to upload files
+                        </span>
                       </>
                     )}
                   </label>
-                  {fileName && !uploading && (
-                    <div className="border-t border-[#f1eded] px-3 py-2 flex justify-between items-center">
-                      <span className="text-xs text-[#666] truncate">{fileName}</span>
-                      <button
-                        type="button"
-                        onClick={clearFile}
-                        className="text-xs text-[#c98383] hover:underline"
-                      >
-                        Remove
-                      </button>
+
+                  {/* File previews */}
+                  {files.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {files.map((f) => (
+                        <div
+                          key={f.id}
+                          className="relative w-24 h-24 rounded-lg border border-[#e4dada] overflow-hidden group"
+                        >
+                          {f.url && f.url.match(/\.pdf$/i) ? (
+                            <div className="flex flex-col items-center justify-center h-full text-xs text-center text-[#555] p-2">
+                              <i className="bi bi-file-earmark-pdf text-rose-400 text-xl mb-1"></i>
+                              <span className="truncate">{f.name}</span>
+                            </div>
+                          ) : f.url ? (
+                            <img
+                              src={f.url}
+                              alt={f.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-[#aaa] text-xs">
+                              {f.name}
+                            </div>
+                          )}
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => openConfirmFile(f.id)}
+                            className="absolute top-1 right-1 bg-rose-500 text-white rounded-full w-5 h-5 text-xs hover:bg-rose-600 opacity-0 group-hover:opacity-100 transition"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="md:col-span-1">
+              <div className="md:col-span-2">
                 <label className="block text-sm text-[#333] mb-2">Note</label>
                 <textarea
                   placeholder="Enter note"
@@ -277,12 +360,12 @@ export default function ExpenseForm() {
               </div>
             </div>
 
-            {/* Recurring Section */}
+            {/* Recurring */}
             <div className="mt-6">
               <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-[#333]">Is Recurring?</span>
-
-                {/* Toggle */}
+                <span className="text-sm font-medium text-[#333]">
+                  Is Recurring?
+                </span>
                 <button
                   type="button"
                   onClick={() =>
@@ -298,8 +381,6 @@ export default function ExpenseForm() {
                     }`}
                   />
                 </button>
-
-                {/* Frequency */}
                 {showRecurring && (
                   <select
                     value={form.recurring}
@@ -343,6 +424,54 @@ export default function ExpenseForm() {
           </>
         )}
       </form>
+
+      {/* Confirm Delete File Modal */}
+      {confirmFileId !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={closeConfirmFile}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4e3e3]">
+                <i className="bi bi-trash text-[#c98383] text-lg" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-[17px] font-semibold text-[#222]">
+                  Delete file?
+                </h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closeConfirmFile}
+                disabled={deleting}
+                className="rounded-lg border border-[#e8e2e2] px-4 py-2 text-sm text-[#333] hover:bg-[#faf7f7] disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteFile}
+                disabled={deleting}
+                className={`rounded-lg px-4 py-2 text-sm text-white ${
+                  deleting
+                    ? "bg-[#c98383]/70 cursor-not-allowed"
+                    : "bg-[#c98383] hover:bg-[#b87474]"
+                }`}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
