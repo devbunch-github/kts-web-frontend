@@ -8,6 +8,7 @@ import {
   listServices,
   listEmployees,
 } from "../../api/appointment";
+import { ChevronLeft } from "lucide-react";
 import Spinner from "../../components/Spinner";
 
 export default function AppointmentForm() {
@@ -34,13 +35,9 @@ export default function AppointmentForm() {
   const [services, setServices] = useState([]);
   const [employees, setEmployees] = useState([]);
 
-  // 🔹 Status map helpers
   const STATUS_CODE_TO_LABEL = { 0: "Unpaid", 1: "Paid", 2: "Cancelled" };
   const STATUS_LABEL_TO_CODE = { Unpaid: 0, Paid: 1, Cancelled: 2 };
 
-  /**
-   * 🔹 Fetch all dependencies (customers, services, employees)
-   */
   const fetchDependencies = async () => {
     try {
       setLoading(true);
@@ -49,7 +46,6 @@ export default function AppointmentForm() {
         listServices(),
         listEmployees(),
       ]);
-
       setCustomers(custRes?.data ?? custRes ?? []);
       setServices(servRes?.data ?? servRes ?? []);
       setEmployees(empRes?.data ?? empRes ?? []);
@@ -60,16 +56,12 @@ export default function AppointmentForm() {
     }
   };
 
-  /**
-   * 🔹 Fetch existing appointment for edit
-   */
   const fetchAppointment = async () => {
     if (!id) return;
     try {
       setLoading(true);
       const res = await getAppointment(id);
       const data = res?.data ?? res;
-
       setForm({
         CustomerId: data.CustomerId ?? "",
         ServiceId: data.ServiceId ?? "",
@@ -95,34 +87,24 @@ export default function AppointmentForm() {
     fetchAppointment();
   }, [id]);
 
-  /**
-   * 🔹 Handle input change
-   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /**
-   * 🔹 Handle submit (create/update)
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSaving(true);
-
-      // convert label to numeric before sending
       const payload = {
         ...form,
         Status: STATUS_LABEL_TO_CODE[form.Status] ?? 0,
       };
-
       if (isEdit) {
         await updateAppointment(id, payload);
       } else {
         await createAppointment(payload);
       }
-
       navigate("/dashboard/appointments");
     } catch (err) {
       console.error("Save failed", err);
@@ -134,190 +116,192 @@ export default function AppointmentForm() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-[#FBF6F6] px-10 py-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          {isEdit ? "Edit Appointment" : "Add New Appointment"}
-        </h2>
+      <div className="flex items-center gap-3 mb-10">
         <button
           onClick={() => navigate("/dashboard/appointments")}
-          className="px-3 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
+          className="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-100 hover:bg-rose-200 transition"
         >
-          ← Back
+          <ChevronLeft className="text-rose-700" size={18} />
         </button>
+        <h1 className="text-2xl font-semibold text-gray-800">
+          {isEdit ? "Edit Appointment" : "Add New Appointment"}
+        </h1>
       </div>
 
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6"
+        className="bg-white p-10 rounded-2xl shadow-sm max-w-[900px]"
       >
-        {/* Customer */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Customer Name
-          </label>
-          <select
-            name="CustomerId"
-            value={form.CustomerId}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          >
-            <option value="">Select Customer</option>
-            {customers.map((c) => (
-              <option key={c.Id} value={c.Id}>
-                {c.Name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-7">
+          {/* Customer */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Customer Name
+            </label>
+            <select
+              name="CustomerId"
+              value={form.CustomerId}
+              onChange={handleChange}
+              required
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            >
+              <option value="">Select Customer</option>
+              {customers.map((c) => (
+                <option key={c.Id} value={c.Id}>
+                  {c.Name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Service */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Service
-          </label>
-          <select
-            name="ServiceId"
-            value={form.ServiceId}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          >
-            <option value="">Select Service</option>
-            {services.map((s) => (
-              <option key={s.Id} value={s.Id}>
-                {s.Name}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Service */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Service
+            </label>
+            <select
+              name="ServiceId"
+              value={form.ServiceId}
+              onChange={handleChange}
+              required
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            >
+              <option value="">Select Service</option>
+              {services.map((s) => (
+                <option key={s.Id} value={s.Id}>
+                  {s.Name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Employee */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Employee
-          </label>
-          <select
-            name="EmployeeId"
-            value={form.EmployeeId}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          >
-            <option value="">Select Employee</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name || e.title}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Employee */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Employee
+            </label>
+            <select
+              name="EmployeeId"
+              value={form.EmployeeId}
+              onChange={handleChange}
+              required
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            >
+              <option value="">Select Employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name || e.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Cost */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Cost
-          </label>
-          <input
-            type="number"
-            name="Cost"
-            value={form.Cost}
-            onChange={handleChange}
-            placeholder="e.g. 50.00"
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
-        </div>
+          {/* Cost */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Amount
+            </label>
+            <input
+              type="number"
+              name="Cost"
+              value={form.Cost}
+              onChange={handleChange}
+              placeholder="e.g. £87.00"
+              required
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            />
+          </div>
 
-        {/* Deposit */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Deposit
-          </label>
-          <input
-            type="number"
-            name="Deposit"
-            value={form.Deposit}
-            onChange={handleChange}
-            placeholder="e.g. 10.00"
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
-        </div>
+          {/* Deposit */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Deposit
+            </label>
+            <input
+              type="number"
+              name="Deposit"
+              value={form.Deposit}
+              onChange={handleChange}
+              placeholder="e.g. £25"
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            />
+          </div>
 
-        {/* Appointment Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Appointment Date & Time
-          </label>
-          <input
-            type="datetime-local"
-            name="StartDateTime"
-            value={form.StartDateTime}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
-        </div>
+          {/* Appointment Date & Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Appointment Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              name="StartDateTime"
+              value={form.StartDateTime}
+              onChange={handleChange}
+              required
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            />
+          </div>
 
-        {/* Tip */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tip Amount
-          </label>
-          <input
-            type="number"
-            name="Tip"
-            value={form.Tip}
-            onChange={handleChange}
-            placeholder="e.g. 5.00"
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
-        </div>
+          {/* Tip */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Tip Amount
+            </label>
+            <input
+              type="number"
+              name="Tip"
+              value={form.Tip}
+              onChange={handleChange}
+              placeholder="e.g. £10.00"
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            />
+          </div>
 
-        {/* Refund */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Refund Amount
-          </label>
-          <input
-            type="number"
-            name="RefundAmount"
-            value={form.RefundAmount}
-            onChange={handleChange}
-            placeholder="e.g. 0.00"
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
-        </div>
+          {/* Refund */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Refund Amount
+            </label>
+            <input
+              type="number"
+              name="RefundAmount"
+              value={form.RefundAmount}
+              onChange={handleChange}
+              placeholder="e.g. £40.00"
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            />
+          </div>
 
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <select
-            name="Status"
-            value={form.Status}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-          >
-            <option>Unpaid</option>
-            <option>Paid</option>
-            <option>Cancelled</option>
-          </select>
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Status
+            </label>
+            <select
+              name="Status"
+              value={form.Status}
+              onChange={handleChange}
+              className="w-full h-[48px] border border-gray-200 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+            >
+              <option>Unpaid</option>
+              <option>Paid</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
         </div>
 
         {/* Submit */}
-        <div className="col-span-2 flex justify-end mt-4">
+        <div className="col-span-2 mt-10">
           <button
             type="submit"
             disabled={saving}
-            className={`px-6 py-2 text-white rounded-lg transition ${
+            className={`px-10 py-2.5 text-white rounded-md font-medium transition ${
               saving
                 ? "bg-rose-300 cursor-not-allowed"
-                : "bg-rose-600 hover:bg-rose-700"
+                : "bg-[#C47B7B] hover:bg-[#b06c6c]"
             }`}
           >
             {saving ? "Saving..." : "Save"}

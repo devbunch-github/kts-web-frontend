@@ -21,6 +21,7 @@
     "axios": "^1.12.2",
     "bootstrap-icons": "^1.13.1",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.18",
     "jotai": "^2.14.0",
     "lucide-react": "^0.545.0",
     "react": "^19.1.1",

@@ -5,33 +5,34 @@ import {
   deleteAppointment,
   updateAppointment,
 } from "../../api/appointment";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import AppointmentRescheduleModal from "../../components/AppointmentRescheduleModal";
 import AppointmentCancelModal from "../../components/AppointmentCancelModal";
 import AppointmentConfirmCancelModal from "../../components/AppointmentConfirmCancelModal";
 import ConsentFormModal from "../../components/ConsentFormModal";
 import MarkPaidModal from "../../components/MarkPaidModal";
-import Spinner from "../../components/Spinner";
 
 export default function AppointmentIndex() {
   const navigate = useNavigate();
-
-  // Data + UI state
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // Modals
   const [openReschedule, setOpenReschedule] = useState(false);
   const [openCancel, setOpenCancel] = useState(false);
   const [openConfirmCancel, setOpenConfirmCancel] = useState(false);
   const [openConsent, setOpenConsent] = useState(false);
   const [openMarkPaid, setOpenMarkPaid] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [message, setMessage] = useState(null);
 
-  // Helpers
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
   const getStatusLabel = (status) => {
     const value = Number(status);
     switch (value) {
@@ -47,8 +48,8 @@ export default function AppointmentIndex() {
   const getStatusClass = (status) => {
     const label = getStatusLabel(status);
     if (label === "Paid") return "bg-green-100 text-green-700";
-    if (label === "Unpaid") return "bg-red-100 text-red-700";
-    if (label === "Cancelled") return "bg-yellow-100 text-yellow-700";
+    if (label === "Unpaid") return "bg-rose-100 text-rose-700";
+    if (label === "Cancelled") return "bg-gray-100 text-gray-500";
     return "bg-gray-100 text-gray-700";
   };
 
@@ -77,7 +78,6 @@ export default function AppointmentIndex() {
     return <span className="text-gray-400">—</span>;
   };
 
-  // Fetch appointments
   const fetchAppointments = async () => {
     try {
       setLoading(true);
@@ -86,8 +86,8 @@ export default function AppointmentIndex() {
         status: statusFilter === "All" ? null : statusFilter,
       });
       setAppointments(res?.data ?? res ?? []);
-    } catch (err) {
-      console.error("Failed to load appointments", err);
+    } catch {
+      showMessage("error", "Failed to load appointments");
     } finally {
       setLoading(false);
     }
@@ -97,250 +97,261 @@ export default function AppointmentIndex() {
     fetchAppointments();
   }, [search, statusFilter]);
 
-  // Filtering
   const filteredRows = useMemo(() => {
     const rows = Array.isArray(appointments) ? appointments : [];
     const term = (search || "").toLowerCase().trim();
-
-    const statusMatches = (row) => {
-      if (statusFilter === "All") return true;
-      return getStatusLabel(row.Status) === statusFilter;
-    };
-
+    const statusMatches = (row) =>
+      statusFilter === "All" || getStatusLabel(row.Status) === statusFilter;
     const textMatches = (row) => {
       if (!term) return true;
       const hay = `${row.customer?.Name || ""} ${row.service?.Name || ""} ${
-        row.employee?.Name || row.employee?.title || ""
+        row.employee?.Name || ""
       }`.toLowerCase();
       return hay.includes(term);
     };
-
     return rows.filter((r) => statusMatches(r) && textMatches(r));
   }, [appointments, search, statusFilter]);
 
-  // Checkbox logic
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  // Delete
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this appointment?")) return;
+    if (!window.confirm("Delete this appointment?")) return;
     try {
       await deleteAppointment(id);
       fetchAppointments();
-    } catch (err) {
-      console.error("Delete failed", err);
+      showMessage("success", "Appointment deleted successfully");
+    } catch {
+      showMessage("error", "Failed to delete appointment");
     }
   };
 
-  // Bulk mark as paid handler
   const confirmMarkAsPaid = async (tipDataArray = []) => {
     try {
       for (const { id, tip } of tipDataArray) {
         const appt = appointments.find((a) => a.Id === id);
         if (!appt) continue;
-
-        const payload = {
-          CustomerId: appt.CustomerId,
-          ServiceId: appt.ServiceId,
-          EmployeeId: appt.EmployeeId,
-          StartDateTime: appt.StartDateTime,
-          EndDateTime: appt.EndDateTime ?? appt.StartDateTime,
-          Cost: appt.Cost ?? 0,
-          Deposit: appt.Deposit ?? 0,
-          RefundAmount: appt.RefundAmount ?? 0,
-          Tip: tip,
-          Status: 1,
-        };
-
-        await updateAppointment(id, payload);
+        await updateAppointment(id, { ...appt, Tip: tip, Status: 1 });
       }
-
       setSelectedIds([]);
       fetchAppointments();
-    } catch (err) {
-      console.error("Mark as paid failed", err);
+      showMessage("success", "Appointments marked as paid");
+    } catch {
+      showMessage("error", "Failed to mark as paid");
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="relative p-6 min-h-screen bg-[#faf8f8]">
+      {/* Loader */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-50">
+          <Loader2 className="h-10 w-10 animate-spin text-[#b26d6d]" />
+        </div>
+      )}
+
+      {/* Toast */}
+      {message && (
+        <div
+          className={`fixed top-4 right-4 z-[9999] rounded-lg px-4 py-3 shadow-lg text-sm ${
+            message.type === "error"
+              ? "bg-rose-100 text-rose-700 border border-rose-300"
+              : "bg-green-100 text-green-700 border border-green-300"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Customer Appointments
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Customer Appointment
         </h2>
         <button
           onClick={() => navigate("/dashboard/appointments/new")}
-          className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition"
+          className="px-5 py-2.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium transition"
         >
           + Add Appointment
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search customer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-3 py-2 border rounded-md w-full text-sm focus:ring-rose-500 focus:border-rose-500"
-          />
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center text-sm text-gray-700">
+            Show
+            <select className="mx-2 border border-gray-200 rounded-md px-2 py-1 text-sm">
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
+            </select>
+            Entries
+          </div>
+          <button
+            onClick={() => setOpenMarkPaid(true)}
+            disabled={!selectedIds.length}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              selectedIds.length
+                ? "bg-rose-600 text-white hover:bg-rose-700"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            Mark all Paid
+          </button>
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border px-3 py-2 rounded-md text-sm"
-        >
-          <option>All</option>
-          <option>Paid</option>
-          <option>Unpaid</option>
-          <option>Cancelled</option>
-        </select>
-      </div>
-
-      {/* Mark as Paid Button */}
-      <div className="mb-3">
-        <button
-          onClick={() => setOpenMarkPaid(true)}
-          className={`px-5 py-2 text-sm font-medium rounded-lg transition ${
-            selectedIds.length
-              ? "bg-rose-600 text-white hover:bg-rose-700"
-              : "bg-gray-200 text-gray-500 cursor-not-allowed"
-          }`}
-          disabled={!selectedIds.length}
-        >
-          Mark as Paid
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search customer..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-3 py-2 border border-gray-200 rounded-md w-full text-sm focus:ring-rose-400 focus:border-rose-400"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-200 px-3 py-2 rounded-md text-sm text-gray-700 focus:ring-rose-400 focus:border-rose-400"
+          >
+            <option>All</option>
+            <option>Paid</option>
+            <option>Unpaid</option>
+            <option>Partially Paid</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-        {loading ? (
-          <Spinner />
-        ) : (
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-700">
-              <tr>
-                <th className="px-4 py-3 w-10"></th>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Service</th>
-                <th className="px-4 py-3">Employee</th>
-                <th className="px-4 py-3">Consent</th>
-                <th className="px-4 py-3">Total Amt.</th>
-                <th className="px-4 py-3">Deposit</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Time</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Tip</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.length === 0 ? (
-                <tr>
-                  <td colSpan="12" className="text-center py-6 text-gray-500">
-                    No appointments found
-                  </td>
-                </tr>
-              ) : (
-                filteredRows.map((item) => {
-                  const label = getStatusLabel(item.Status);
-                  const statusClass = getStatusClass(item.Status);
-                  const isPaid = label === "Paid";
+      <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
+        <table className="min-w-[1200px] w-full text-sm text-left border-collapse">
+          <thead className="bg-gray-50 text-gray-600 border-b">
+            <tr>
+              <th className="px-4 py-3 w-10"></th>
+              <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Service</th>
+              <th className="px-4 py-3">Employee</th>
+              <th className="px-4 py-3">Total Amt.</th>
+              <th className="px-4 py-3">Discount</th>
+              <th className="px-4 py-3">Final Amt.</th>
+              <th className="px-4 py-3">Deposit</th>
+              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Time</th>
+              <th className="px-4 py-3">Pay Status</th>
+              <th className="px-4 py-3">Refund Amt</th>
+              <th className="px-4 py-3">Tip Amt</th>
+              <th className="px-4 py-3">Pay Balance</th>
+              <th className="px-4 py-3">Form</th>
+              <th className="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
 
-                  return (
-                    <tr key={item.Id} className="border-b hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 text-center">
-                        {!isPaid && (
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(item.Id)}
-                            onChange={() => toggleSelect(item.Id)}
-                            className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
-                          />
-                        )}
-                      </td>
-                      <td className="px-4 py-3">{item.customer?.Name || "—"}</td>
-                      <td className="px-4 py-3">{item.service?.Name || "—"}</td>
-                      <td className="px-4 py-3">
-                        {item.employee?.Name || item.employee?.title || "—"}
-                      </td>
-                      <td className="px-4 py-3">{renderConsentCell(item)}</td>
-                      <td className="px-4 py-3">£ {item.Cost ?? 0}</td>
-                      <td className="px-4 py-3">£ {item.Deposit ?? 0}</td>
-                      <td className="px-4 py-3">
-                        {item.StartDateTime
-                          ? new Date(item.StartDateTime).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.StartDateTime
-                          ? new Date(item.StartDateTime).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${statusClass}`}
-                        >
-                          {label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">£ {item.Tip ?? 0}</td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedAppointment(item);
-                            setOpenCancel(true);
-                          }}
-                          className="text-xs bg-rose-100 text-rose-700 px-3 py-1 rounded-md hover:bg-rose-200"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedAppointment(item);
-                            setOpenReschedule(true);
-                          }}
-                          className="text-xs bg-rose-100 text-rose-700 px-3 py-1 rounded-md hover:bg-rose-200"
-                        >
-                          Reschedule
-                        </button>
-                        <button
-                          onClick={() =>
-                            navigate(`/dashboard/appointments/${item.Id}/edit`)
-                          }
-                          className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-200"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.Id)}
-                          className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-200"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        )}
+          <tbody>
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan="16" className="text-center py-8 text-gray-500">
+                  No appointments found.
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((item) => {
+                const label = getStatusLabel(item.Status);
+                const statusClass = getStatusClass(item.Status);
+                const isPaid = label === "Paid";
+                return (
+                  <tr
+                    key={item.Id}
+                    className="border-b last:border-0 hover:bg-rose-50/40 transition"
+                  >
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.Id)}
+                        onChange={() => toggleSelect(item.Id)}
+                        className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3">{item.customer?.Name || "—"}</td>
+                    <td className="px-4 py-3">{item.service?.Name || "—"}</td>
+                    <td className="px-4 py-3">{item.employee?.Name || "—"}</td>
+                    <td className="px-4 py-3">£ {item.Cost ?? 0}</td>
+                    <td className="px-4 py-3">£ {item.Discount ?? 0}</td>
+                    <td className="px-4 py-3">£ {item.FinalAmount ?? 0}</td>
+                    <td className="px-4 py-3">£ {item.Deposit ?? 0}</td>
+                    <td className="px-4 py-3">
+                      {new Date(item.StartDateTime).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(item.StartDateTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${statusClass}`}
+                      >
+                        {label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">£ {item.RefundAmount ?? 0}</td>
+                    <td className="px-4 py-3">£ {item.Tip ?? 0}</td>
+                    <td className="px-4 py-3">£ {item.PayBalance ?? 0}</td>
+                    <td className="px-4 py-3">{renderConsentCell(item)}</td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(item);
+                          setOpenCancel(true);
+                        }}
+                        className="text-xs bg-rose-100 text-rose-700 px-3 py-1 rounded-md hover:bg-rose-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(item);
+                          setOpenReschedule(true);
+                        }}
+                        className="text-xs bg-rose-100 text-rose-700 px-3 py-1 rounded-md hover:bg-rose-200"
+                      >
+                        Reschedule
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigate(`/dashboard/appointments/${item.Id}/edit`)
+                        }
+                        className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-200"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* ✅ Modals */}
+      {/* Pagination */}
+      <div className="flex justify-end items-center gap-2 mt-4 text-sm text-gray-600">
+        <button className="p-2 rounded-md hover:bg-gray-100">
+          ‹
+        </button>
+        <span className="px-3 py-1 rounded-md bg-rose-100 text-rose-700">1</span>
+        <button className="p-2 rounded-md hover:bg-gray-100">
+          ›
+        </button>
+      </div>
+
+      {/* Modals */}
       {openMarkPaid && (
         <MarkPaidModal
           open={openMarkPaid}
@@ -351,7 +362,6 @@ export default function AppointmentIndex() {
           )}
         />
       )}
-
       {openConsent && (
         <ConsentFormModal
           open={openConsent}
@@ -359,7 +369,6 @@ export default function AppointmentIndex() {
           appointment={selectedAppointment}
         />
       )}
-
       {openReschedule && (
         <AppointmentRescheduleModal
           open={openReschedule}

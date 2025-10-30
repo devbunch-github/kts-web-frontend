@@ -11,27 +11,25 @@ export default function ConfirmDeleteModal({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
-        aria-hidden
-      />
-      <div className="relative w-[520px] max-w-[92vw] rounded-2xl bg-white p-6 shadow-xl">
-        <p className="text-center text-[18px] leading-6 text-gray-800">
+      ></div>
+
+      <div className="relative w-[420px] max-w-[90vw] rounded-2xl bg-white p-8 shadow-xl text-center">
+        <p className="text-[16px] text-gray-800 leading-6 font-medium">
           {message}
         </p>
 
         <div className="mt-8 flex items-center justify-center gap-4">
           <button
-            type="button"
             onClick={onClose}
-            className="h-11 w-[140px] rounded-xl border border-gray-300 bg-white text-gray-700 transition hover:bg-gray-50"
+            className="h-11 w-[140px] rounded-xl border border-gray-300 bg-white text-[14px] font-medium text-gray-700 transition hover:bg-gray-50"
           >
             {noText}
           </button>
           <button
-            type="button"
             onClick={onConfirm}
-            className="h-11 w-[140px] rounded-xl bg-rose-300 text-white transition hover:bg-rose-400"
+            className="h-11 w-[140px] rounded-xl bg-[#D6A5A5] text-[14px] font-medium text-white transition hover:bg-[#c38e8e]"
           >
             {yesText}
           </button>

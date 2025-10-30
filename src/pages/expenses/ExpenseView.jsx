@@ -7,10 +7,14 @@ export default function ExpenseView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [data, setData] = useState(null);
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [activeFile, setActiveFile] = useState(null);
 
   useEffect(() => {
-    getExpense(id).then((res) => setData(res.data ?? res));
+    (async () => {
+      const res = await getExpense(id);
+      const expense = res?.data ?? res;
+      setData(expense);
+    })();
   }, [id]);
 
   if (!data)
@@ -22,77 +26,132 @@ export default function ExpenseView() {
       </div>
     );
 
+  const files = Array.isArray(data.files) ? data.files : [];
+
   return (
-    <div className="bg-[#FBF6F6] min-h-screen rounded-2xl shadow p-8">
+    <div className="p-6 md:p-8 min-h-screen bg-[#faf8f8]">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={() => navigate("/dashboard/expense")}
-          className="h-9 w-9 rounded-xl bg-white border border-rose-100 flex items-center justify-center text-gray-700 hover:bg-gray-50"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-[#f0dede] text-[#a96464] hover:bg-[#fff7f7]"
         >
           ‹
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">View Expense</h1>
+        <h1 className="text-[26px] font-semibold text-[#222]">View Expense</h1>
       </div>
 
-      <div className="bg-white rounded-2xl shadow p-6">
-        <table className="w-full text-sm">
+      {/* Table Card */}
+      <div className="bg-white rounded-2xl shadow-sm p-5 md:p-8 overflow-x-auto">
+        <table className="min-w-full text-sm">
           <thead>
-            <tr style={{ backgroundColor: "#C08080" }} className="text-white">
-              <th className="px-5 py-3 text-left rounded-l-lg">Date</th>
-              <th className="px-5 py-3 text-left">Supplier</th>
-              <th className="px-5 py-3 text-left">Amount</th>
-              <th className="px-5 py-3 text-left">File</th>
-              <th className="px-5 py-3 text-left rounded-r-lg">Note</th>
+            <tr className="text-white" style={{ backgroundColor: "#C08080" }}>
+              <th className="px-5 py-3 text-left rounded-l-xl font-medium">
+                Date
+              </th>
+              <th className="px-5 py-3 text-left font-medium">Supplier</th>
+              <th className="px-5 py-3 text-left font-medium">Amount</th>
+              <th className="px-5 py-3 text-left font-medium">Files</th>
+              <th className="px-5 py-3 text-left rounded-r-xl font-medium">
+                Note
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b">
-              <td className="px-5 py-4">
-                {new Date(data.paid_date_time).toLocaleDateString()}
+            <tr className="border-b border-[#f2eeee]">
+              <td className="px-5 py-4 text-[#333]">
+                {data.paid_date_time
+                  ? new Date(data.paid_date_time).toLocaleDateString()
+                  : "-"}
               </td>
-              <td className="px-5 py-4">{data.supplier}</td>
-              <td className="px-5 py-4">£{data.amount}</td>
+              <td className="px-5 py-4 text-[#333]">{data.supplier || "-"}</td>
+              <td className="px-5 py-4 text-[#333] font-medium">
+                £{Number(data.amount || 0).toFixed(2)}
+              </td>
+
+              {/* File Thumbnails */}
               <td className="px-5 py-4">
-                {data.receipt_id ? (
-                  <button
-                    onClick={() => setShowReceipt(true)}
-                    className="text-[#C08080] underline"
-                  >
-                    Example-file.png
-                  </button>
+                {files.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {files.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setActiveFile(f)}
+                        className="group relative border border-[#f0dede] rounded-lg overflow-hidden w-14 h-14 hover:scale-105 transition"
+                      >
+                        {f.url && f.url.match(/\.pdf$/i) ? (
+                          <div className="flex items-center justify-center h-full w-full bg-[#faf8f8] text-[#c98383]">
+                            <i className="bi bi-file-earmark-pdf text-lg"></i>
+                          </div>
+                        ) : (
+                          <img
+                            src={f.url}
+                            alt={f.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   "-"
                 )}
               </td>
-              <td className="px-5 py-4">{data.notes || "-"}</td>
+
+              <td className="px-5 py-4 text-[#333] max-w-[400px] leading-relaxed">
+                {data.notes || "-"}
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Receipt Modal */}
-      {showReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-          <div className="bg-white rounded-xl max-w-3xl w-full p-6 relative">
+      {/* Modal for File Preview */}
+      {activeFile && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setActiveFile(null)}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
             <button
-              onClick={() => setShowReceipt(false)}
-              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+              onClick={() => setActiveFile(null)}
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 z-50"
             >
               ✕
             </button>
-            <iframe
-              src={`/api/files/${data.receipt_id}`}
-              title="Receipt Preview"
-              className="w-full h-[70vh] border rounded-md"
-            ></iframe>
-            <div
-              className="mt-4 py-3 text-center text-white rounded-md cursor-pointer"
-              style={{ backgroundColor: "#C08080" }}
-            >
+
+            {/* File Display */}
+            <div className="flex-1 overflow-auto flex items-center justify-center bg-[#faf8f8]">
+              {activeFile.url && activeFile.url.match(/\.pdf$/i) ? (
+                <iframe
+                  src={activeFile.url}
+                  title="Receipt Preview"
+                  className="w-full h-[85vh] border-none"
+                ></iframe>
+              ) : (
+                <img
+                  src={activeFile.url}
+                  alt={activeFile.name}
+                  className="max-h-[85vh] object-contain"
+                />
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="bg-white border-t border-gray-200 p-3 flex justify-between items-center">
+              <span className="text-sm text-gray-600 truncate pr-4">
+                {activeFile.name}
+              </span>
               <a
-                href={`/api/files/${data.receipt_id}`}
+                href={activeFile.url}
                 download
-                className="hover:underline"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[#C08080] text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition"
               >
                 Download
               </a>
