@@ -40,3 +40,12 @@ export const uploadGeneric = async (formData) => {
     },
   }).then((r) => r.data);
 };
+
+export const deleteUploadedFile = async (path) => {
+  try {
+    return await axios.delete("/api/file-upload", { data: { path } });
+  } catch (err) {
+    console.error("File delete failed:", err);
+    throw err;
+  }
+};

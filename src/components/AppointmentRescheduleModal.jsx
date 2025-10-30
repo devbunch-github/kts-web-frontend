@@ -1,42 +1,30 @@
 import { useState } from "react";
 import { updateAppointment } from "../api/appointment";
 
-/**
- * AppointmentRescheduleModal
- * ---------------------------------
- * Allows a user to update the StartDateTime (and optionally EndDateTime)
- * for an existing appointment. This component is rendered as a modal overlay.
- *
- * Props:
- * - open (boolean): controls modal visibility
- * - setOpen (function): function to close modal
- * - appointment (object): current appointment details
- * - onSaved (function): callback to refresh parent list after successful save
- */
 export default function AppointmentRescheduleModal({
   open,
   setOpen,
   appointment,
   onSaved,
 }) {
-  const [newDateTime, setNewDateTime] = useState(
-    appointment?.StartDateTime
-      ? new Date(appointment.StartDateTime).toISOString().slice(0, 16)
-      : ""
-  );
+  const initial = appointment?.StartDateTime
+    ? new Date(appointment.StartDateTime)
+    : null;
+
+  const [date, setDate] = useState(initial ? initial.toISOString().slice(0, 10) : "");
+  const [time, setTime] = useState(initial ? initial.toTimeString().slice(0, 5) : "");
   const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
-  /**
-   * 🔹 Handle rescheduling submission
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newDateTime) return alert("Please select a new date and time");
+    if (!date || !time)
+      return alert("Please select both date and time for appointment.");
 
     try {
       setSaving(true);
+      const newDateTime = new Date(`${date}T${time}`).toISOString();
 
       await updateAppointment(appointment.Id, {
         ...appointment,
@@ -53,59 +41,60 @@ export default function AppointmentRescheduleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       {/* Modal container */}
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      <div className="bg-white rounded-2xl shadow-lg w-[90%] max-w-2xl p-10 animate-fadeIn">
+        {/* Title */}
+        <h2 className="text-2xl font-semibold text-center text-gray-900 mb-10">
           Reschedule Appointment
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* Appointment info */}
-          <div className="mb-4 text-sm text-gray-600">
-            <p>
-              <span className="font-medium">Customer:</span>{" "}
-              {appointment?.customer?.Name ?? "—"}
-            </p>
-            <p>
-              <span className="font-medium">Service:</span>{" "}
-              {appointment?.service?.Name ?? "—"}
-            </p>
+          {/* Two-column grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {/* Appointment Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Appointment Date
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                className="w-full h-[46px] border border-gray-300 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-rose-200 focus:border-rose-300 transition"
+                placeholder="e.g. 24/11/2024"
+              />
+            </div>
+
+            {/* Appointment Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Appointment Time
+              </label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+                className="w-full h-[46px] border border-gray-300 rounded-md px-4 text-sm placeholder-gray-400 focus:ring-rose-200 focus:border-rose-300 transition"
+                placeholder="e.g. 09:00 am"
+              />
+            </div>
           </div>
 
-          {/* New date/time input */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              New Appointment Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              value={newDateTime}
-              onChange={(e) => setNewDateTime(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:ring-rose-500 focus:border-rose-500"
-              required
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md"
-            >
-              Cancel
-            </button>
+          {/* Centered Save button */}
+          <div className="flex justify-center">
             <button
               type="submit"
               disabled={saving}
-              className={`px-5 py-2 text-sm rounded-md text-white ${
+              className={`w-40 py-3 rounded-md text-white font-medium text-sm transition ${
                 saving
                   ? "bg-rose-300 cursor-not-allowed"
-                  : "bg-rose-600 hover:bg-rose-700"
+                  : "bg-[#C47B7B] hover:bg-[#b06c6c]"
               }`}
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
         </form>
