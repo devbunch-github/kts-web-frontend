@@ -1,11 +1,12 @@
-import { useState  } from "react";
+import { useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
-import { LayoutDashboard, DollarSign } from "lucide-react";
+import { LayoutDashboard, DollarSign, Receipt } from "lucide-react";
 
 export default function AccountantLayout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const user = JSON.parse(localStorage.getItem("apptlive_user") || "{}");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isRevoked = user?.is_active == 0;
 
   const logout = () => {
     localStorage.removeItem("authToken");
@@ -15,7 +16,6 @@ export default function AccountantLayout() {
     localStorage.removeItem("userRole");
     navigate("/accountant/login");
   };
-
 
   return (
     <div className="flex flex-col min-h-screen font-[Poppins,sans-serif] bg-[#fffaf6]">
@@ -53,49 +53,51 @@ export default function AccountantLayout() {
 
       {/* 🔹 Main Body Layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-56 bg-white border-r shadow-sm flex flex-col">
-          <nav className="flex flex-col p-4 space-y-2 mt-4">
-            <NavLink
-              to="/accountant/dashboard"
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
-                  isActive
-                    ? "bg-[#f28c38] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              <LayoutDashboard className="w-4 h-4" /> Dashboard
-            </NavLink>
+        {/* Sidebar (only show if NOT revoked) */}
+        {!isRevoked && (
+          <aside className="w-56 bg-white border-r shadow-sm flex flex-col">
+            <nav className="flex flex-col p-4 space-y-2 mt-4">
+              <NavLink
+                to="/accountant/dashboard"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
+                    isActive
+                      ? "bg-[#f28c38] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <LayoutDashboard className="w-4 h-4" /> Dashboard
+              </NavLink>
 
-            <NavLink
-              to="/accountant/income"
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
-                  isActive
-                    ? "bg-[#f28c38] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              <DollarSign className="w-4 h-4" /> Income
-            </NavLink>
+              <NavLink
+                to="/accountant/income"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
+                    isActive
+                      ? "bg-[#f28c38] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <DollarSign className="w-4 h-4" /> Income
+              </NavLink>
 
-            <NavLink
-              to="/accountant/expense"
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
-                  isActive
-                    ? "bg-[#f28c38] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              <i className="fa-solid fa-receipt text-sm"></i> Expense
-            </NavLink>
-          </nav>
-        </aside>
+              <NavLink
+                to="/accountant/expense"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
+                    isActive
+                      ? "bg-[#f28c38] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <Receipt className="w-4 h-4" /> Expense
+              </NavLink>
+            </nav>
+          </aside>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-y-auto">

@@ -61,6 +61,10 @@ import AddAccountant from "./pages/accountant/AddAccountant";
 import AccountantLayout from "./layouts/AccountantLayout";
 import AccountantLogin from "./pages/accountantdashboard/AccountantLogin";
 import AccountantDashboard from "./pages/accountantdashboard/AccountantDashboard";
+import AccountantIncome from "./pages/accountantdashboard/AccountantIncome";
+import AccountantIncomeEdit from "./pages/accountantdashboard/AccountantIncomeEdit";
+import AccountantExpense from "./pages/accountantdashboard/AccountantExpense";
+import AccountantExpenseEdit from "./pages/accountantdashboard/AccountantExpenseEdit";
 import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
 
 
@@ -173,10 +177,10 @@ export default function App() {
             <Route index element={<AccountantDashboard />} />
             <Route path="dashboard" element={<AccountantDashboard />} />
 
-            {/* <Route index element={<div>Dashboard</div>} /> */}
-            <Route path="dashboard" element={<div>Dashboard</div>} />
-            <Route path="income" element={<div>Income Page</div>} />
-            <Route path="expense" element={<div>Expense Page</div>} />
+            <Route path="income" element={<AccountantIncome />} />
+            <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
+            <Route path="expense" element={<AccountantExpense />} />
+            <Route path="expense/edit/:id" element={<AccountantExpenseEdit />} />
           </Route>
         </Route>
 

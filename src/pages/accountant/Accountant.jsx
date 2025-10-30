@@ -192,7 +192,7 @@ export default function Accountant() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan="4" className="text-center text-gray-500 py-6">
-                    No Account Found!
+                    Loading...
                   </td>
                 </tr>
               )}
