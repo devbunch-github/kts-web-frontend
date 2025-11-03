@@ -66,6 +66,16 @@ import AccountantExpense from "./pages/accountantdashboard/AccountantExpense";
 import AccountantExpenseEdit from "./pages/accountantdashboard/AccountantExpenseEdit";
 import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
 
+import PromoCodeIndex from "./pages/PromoCodes/PromoCodeIndex";
+import PromoCodeForm from "./pages/PromoCodes/PromoCodeForm";
+
+import GiftCardIndex from "./pages/gift-cards/GiftCardIndex";
+import GiftCardForm from "./pages/gift-cards/GiftCardForm";
+
+import EmailMessagesIndex from "./pages/email-messages/EmailMessagesIndex";
+import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
+
+
 export default function App() {
   return (
     <>
@@ -109,12 +119,8 @@ export default function App() {
           {/* Business Dashboard Routes */}
           <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<BusinessDashboard />} />
+            <Route index element={<BusinessDashboard />} />
 
-            <Route path="income" element={<AccountantIncome />} />
-            <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
-            <Route path="expense" element={<AccountantExpense />} />
-            <Route path="expense/edit/:id" element={<AccountantExpenseEdit />} />
               {/* Income */}
               <Route path="income" element={<IncomeIndex />} />
               <Route path="income/new" element={<IncomeForm />} />
@@ -166,6 +172,21 @@ export default function App() {
               <Route path="accountant" element={<Accountant />} />
               <Route path="accountant/add" element={<AddAccountant />} />
               <Route path="accountant/edit/:id" element={<AddAccountant />} />
+
+              {/* Promo Codes */}
+              <Route path="promo-codes" element={<PromoCodeIndex />} />
+              <Route path="promo-codes/new" element={<PromoCodeForm />} />
+              <Route path="promo-codes/edit/:id" element={<PromoCodeForm />} />
+
+              {/* Gift cards */}
+              <Route path="gift-cards" element={<GiftCardIndex />} />
+              <Route path="gift-cards/new" element={<GiftCardForm />} />
+              <Route path="gift-cards/edit/:id" element={<GiftCardForm />} />
+
+              {/* Email Messages */}
+              <Route path="email-messages" element={<EmailMessagesIndex />} />
+              <Route path="email-messages/:id/edit" element={<EmailMessageEdit />} />
+
             </Route>
           </Route>
 

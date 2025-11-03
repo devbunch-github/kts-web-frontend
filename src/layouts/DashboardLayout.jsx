@@ -28,6 +28,9 @@ export default function DashboardLayout() {
     { name: "Payment", path: "/dashboard/payment" },
     { name: "SMS Packages", path: "/dashboard/sms-packages" },
     { name: "Accountant", path: "/dashboard/accountant" },
+    { name: "Promo Codes", path: "/dashboard/promo-codes" },
+    { name: "Gift Cards", path: "/dashboard/gift-cards" },
+    { name: "Messages", path: "/dashboard/email-messages" },
     { name: "Settings", path: "/dashboard/settings" },
   ];
 

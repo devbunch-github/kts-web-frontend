@@ -141,7 +141,7 @@ export default function Header() {
                     className="absolute right-0 mt-2 bg-white border border-[#eee] rounded-md shadow-lg w-[160px] text-left z-50"
                   >
                     <Link
-                      to="/dashboard/income"
+                      to="/dashboard"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-[14px] text-[#444] hover:bg-[#f9f9f9]"
                     >
