@@ -75,6 +75,9 @@ import GiftCardForm from "./pages/gift-cards/GiftCardForm";
 import EmailMessagesIndex from "./pages/email-messages/EmailMessagesIndex";
 import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 
+import LoyaltyCardPage  from "./pages/loyalty/LoyaltyCardPage";
+import LoyaltyProgramPage  from "./pages/loyalty/LoyaltyProgramPage";
+
 
 export default function App() {
   return (
@@ -186,6 +189,10 @@ export default function App() {
               {/* Email Messages */}
               <Route path="email-messages" element={<EmailMessagesIndex />} />
               <Route path="email-messages/:id/edit" element={<EmailMessageEdit />} />
+
+              <Route path="loyalty-card" element={<LoyaltyCardPage />} />
+              <Route path="loyalty-program" element={<LoyaltyProgramPage />} />
+
 
             </Route>
           </Route>

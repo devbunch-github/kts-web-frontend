@@ -31,6 +31,8 @@ export default function DashboardLayout() {
     { name: "Promo Codes", path: "/dashboard/promo-codes" },
     { name: "Gift Cards", path: "/dashboard/gift-cards" },
     { name: "Messages", path: "/dashboard/email-messages" },
+    { name: "Loyalty Card", path: "/dashboard/loyalty-card" },
+    { name: "Loyalty Program", path: "/dashboard/loyalty-program" },
     { name: "Settings", path: "/dashboard/settings" },
   ];
 
