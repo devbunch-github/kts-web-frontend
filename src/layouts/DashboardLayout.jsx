@@ -33,7 +33,13 @@ export default function DashboardLayout() {
     { name: "Messages", path: "/dashboard/email-messages" },
     { name: "Loyalty Card", path: "/dashboard/loyalty-card" },
     { name: "Loyalty Program", path: "/dashboard/loyalty-program" },
-    { name: "Settings", path: "/dashboard/settings" },
+    { 
+      name: "Settings", path: "/dashboard/settings",
+      hasChildren: true,
+      children: [
+        { name: "Set Rota", path: "/dashboard/settings/set-rota" },
+      ],
+    },
   ];
 
   return (

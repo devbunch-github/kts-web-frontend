@@ -78,6 +78,10 @@ import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 import LoyaltyCardPage  from "./pages/loyalty/LoyaltyCardPage";
 import LoyaltyProgramPage  from "./pages/loyalty/LoyaltyProgramPage";
 
+// Settings Pages
+import SettingsIndex from "./pages/settings/businessadmin/SettingsIndex";
+import SetRotaPage from "./pages/settings/rota/SetRotaPage";
+
 
 export default function App() {
   return (
@@ -193,6 +197,9 @@ export default function App() {
               <Route path="loyalty-card" element={<LoyaltyCardPage />} />
               <Route path="loyalty-program" element={<LoyaltyProgramPage />} />
 
+              {/* Business Settings */}
+              <Route path="settings" element={<SettingsIndex />} />
+              <Route path="settings/set-rota" element={<SetRotaPage />} />
 
             </Route>
           </Route>

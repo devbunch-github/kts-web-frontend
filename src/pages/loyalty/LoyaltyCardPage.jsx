@@ -88,7 +88,16 @@ export default function LoyaltyCardPage() {
     )} spent = 1 stamp. User gets reward set for each tier.`;
   }, [form]);
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  // ✅ Proper animated loader
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
+        <div className="w-10 h-10 border-4 border-rose-300 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-600 text-sm font-medium">
+          Loading loyalty card settings...
+        </p>
+      </div>
+    );
 
   return (
     <div className="p-6 space-y-6">

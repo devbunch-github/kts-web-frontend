@@ -121,7 +121,16 @@ export default function LoyaltyProgramPage() {
     }
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  // ✅ Proper animated loader
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
+        <div className="w-10 h-10 border-4 border-rose-300 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-600 text-sm font-medium">
+          Loading loyalty program settings...
+        </p>
+      </div>
+    );
 
   return (
     <div className="p-6 space-y-6">
@@ -155,7 +164,7 @@ export default function LoyaltyProgramPage() {
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">Loyalty Program Enabled</div>
 
-          {/* 🌸 Working animated toggle */}
+          {/* 🌸 Animated toggle identical to Loyalty Card */}
           <label className="relative inline-flex items-center cursor-pointer select-none">
             <input
               type="checkbox"
@@ -200,7 +209,9 @@ export default function LoyaltyProgramPage() {
         {/* Points settings */}
         <div className="grid md:grid-cols-2 gap-4 mt-6">
           <div className="border rounded-xl p-4">
-            <div className="text-xs text-gray-500">Points Earned (per £ spent)</div>
+            <div className="text-xs text-gray-500">
+              Points Earned (per £ spent)
+            </div>
             <div className="flex items-center gap-3 mt-2">
               <button
                 className="px-3 py-1.5 rounded-lg border"
@@ -289,7 +300,9 @@ export default function LoyaltyProgramPage() {
 
         {/* Services multi-select */}
         <div className="mt-6 relative" ref={dropdownRef}>
-          <label className="text-sm text-gray-700 block mb-2">Select Services</label>
+          <label className="text-sm text-gray-700 block mb-2">
+            Select Services
+          </label>
 
           <div
             className="w-full px-3 py-2 border rounded-lg flex items-center justify-between cursor-pointer bg-white"
@@ -313,7 +326,11 @@ export default function LoyaltyProgramPage() {
             <div className="absolute z-10 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
               <div className="px-3 py-2 border-b">
                 <label className="inline-flex items-center gap-2">
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                  />
                   <span className="text-sm">All Services</span>
                 </label>
               </div>
@@ -352,9 +369,16 @@ export default function LoyaltyProgramPage() {
         <button
           onClick={onSave}
           disabled={saving}
-          className="px-6 py-3 bg-rose-300 hover:bg-rose-400 text-white rounded-xl shadow disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-rose-300 hover:bg-rose-400 text-white rounded-xl shadow disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            </>
+          ) : (
+            "Save"
+          )}
         </button>
       </div>
     </div>
