@@ -82,6 +82,10 @@ import LoyaltyProgramPage  from "./pages/loyalty/LoyaltyProgramPage";
 import SettingsIndex from "./pages/settings/businessadmin/SettingsIndex";
 import SetRotaPage from "./pages/settings/rota/SetRotaPage";
 
+// Forms
+import BusinessFormsIndex from "./pages/forms/BusinessFormsIndex";
+import BusinessFormEditor from "./pages/forms/BusinessFormEditor";
+
 
 export default function App() {
   return (
@@ -196,6 +200,10 @@ export default function App() {
 
               <Route path="loyalty-card" element={<LoyaltyCardPage />} />
               <Route path="loyalty-program" element={<LoyaltyProgramPage />} />
+
+              <Route path="forms" element={<BusinessFormsIndex />} />
+              <Route path="forms/new" element={<BusinessFormEditor />} />
+              <Route path="forms/:id/edit" element={<BusinessFormEditor />} />
 
               {/* Business Settings */}
               <Route path="settings" element={<SettingsIndex />} />

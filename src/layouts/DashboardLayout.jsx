@@ -38,6 +38,7 @@ export default function DashboardLayout() {
     { name: "Messages", path: "/dashboard/email-messages" },
     { name: "Loyalty Card", path: "/dashboard/loyalty-card" },
     { name: "Loyalty Program", path: "/dashboard/loyalty-program" },
+    { name: "Forms", path: "/dashboard/forms" },
     {
       name: "Settings",
       path: "/dashboard/settings",
