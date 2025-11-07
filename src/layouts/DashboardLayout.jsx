@@ -1,16 +1,16 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Bell, FileText } from "lucide-react";
 import SetupBusinessModal from "@/components/SetupBusinessModal";
+import BusinessTodoModal from "@/components/todo/BusinessTodoModal";
 
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState(null);
+  const [todoOpen, setTodoOpen] = useState(false); // 🔔 controls To-Do modal
 
-  const toggleMenu = (name) => {
-    setOpenMenu((prev) => (prev === name ? null : name));
-  };
+  const toggleMenu = (name) => setOpenMenu((prev) => (prev === name ? null : name));
 
   const menu = [
     { name: "Dashboard", path: "/dashboard", icon: "📊" },
@@ -61,11 +61,9 @@ export default function DashboardLayout() {
 
             if (item.hasChildren) {
               const isOpen = openMenu === item.name;
-
               return (
                 <div key={item.path} className="flex flex-col">
                   <div className="flex items-center justify-between">
-                    {/* Parent link */}
                     <button
                       onClick={() => navigate(item.path)}
                       className={`flex-1 text-left px-3 py-2 rounded-lg font-medium transition-colors ${
@@ -77,13 +75,8 @@ export default function DashboardLayout() {
                       {item.icon && <span className="mr-2">{item.icon}</span>}
                       {item.name}
                     </button>
-
-                    {/* Toggle arrow */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMenu(item.name);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); toggleMenu(item.name); }}
                       className="p-1"
                     >
                       {isOpen ? (
@@ -133,10 +126,29 @@ export default function DashboardLayout() {
         </nav>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto relative">
-        <Outlet />
+      {/* Main area */}
+      <main className="flex-1 p-0 md:p-0 overflow-y-auto relative">
+        {/* ✅ Topbar with Notes button (matches your screenshots) */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200 px-6 py-3 flex items-center justify-end">
+          <button
+            onClick={() => setTodoOpen(true)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-rose-50"
+            title="Notes / To do list"
+          >
+            <FileText size={16} />
+            <span className="text-sm font-medium">Notes</span>
+          </button>
+        </div>
+
+        {/* Page content */}
+        <div className="p-6 md:p-10">
+          <Outlet />
+        </div>
+
         <SetupBusinessModal />
+
+        {/* To-Do Modal */}
+        <BusinessTodoModal open={todoOpen} onClose={() => setTodoOpen(false)} />
       </main>
     </div>
   );
