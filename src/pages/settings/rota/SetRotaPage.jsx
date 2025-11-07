@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { listRota, listTimeOff, deleteRota } from "@/api/rota";
+import { listRota, listTimeOff, deleteRota, deleteTimeOff } from "@/api/rota";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import weekday from "dayjs/plugin/weekday";
 import AddTimeOffModal from "./components/AddTimeOffModal";
 import SetRegularShiftsModal from "./components/SetRegularShiftsModal";
+import EditShiftModal from "./components/EditShiftModal";
 
 dayjs.extend(isoWeek);
 dayjs.extend(weekday);
@@ -26,6 +27,8 @@ export default function SetRotaPage() {
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editModal, setEditModal] = useState({ open: false, shift: null });
+  const [editTimeOff, setEditTimeOff] = useState({ open: false, data: null });
 
   const weekDays = useMemo(() => {
     const start = weekStart.startOf("week");
@@ -36,12 +39,15 @@ export default function SetRotaPage() {
     const d = payload?.data ?? [];
     const arr = Array.isArray(d) ? d : Object.values(d || {}).flat();
 
-    return arr.map((item) => ({
-      ...item,
-      date: dayjs(item.date).format("YYYY-MM-DD"),
-      start_time: item.start_time?.substring(0, 5),
-      end_time: item.end_time?.substring(0, 5),
-    }));
+    return arr.map((item) => {
+      const dateField = item.shift_date || item.date;
+      return {
+        ...item,
+        date: dayjs(dateField).format("YYYY-MM-DD"),
+        start_time: item.start_time?.substring(0, 5),
+        end_time: item.end_time?.substring(0, 5),
+      };
+    });
   };
 
   const fetchData = async () => {
@@ -90,14 +96,28 @@ export default function SetRotaPage() {
   const nextWeek = () => setWeekStart((d) => d.add(7, "day"));
   const prevWeek = () => setWeekStart((d) => d.subtract(7, "day"));
 
-  const handleDeleteShift = async (recurrenceId) => {
+  const handleDeleteShift = async (target) => {
     try {
-      await deleteRota({ recurrence_id: recurrenceId });
+      await deleteRota({ id: target.id });
       toast.success("Shift deleted.");
       setConfirmDelete(null);
       fetchData();
     } catch {
       toast.error("Failed to delete shift.");
+    }
+  };
+
+  const handleDeleteTimeOff = async (target) => {
+    try {
+      const payload = target.recurrence_id
+        ? { recurrence_id: target.recurrence_id }
+        : { id: target.id };
+      await deleteTimeOff(payload);
+      toast.success("Time off deleted.");
+      setConfirmDelete(null);
+      fetchData();
+    } catch {
+      toast.error("Failed to delete time off.");
     }
   };
 
@@ -136,7 +156,13 @@ export default function SetRotaPage() {
           </div>
           <div className="flex items-center gap-3">
             <SetRegularShiftsModal employeeId={employeeId} onSaved={fetchData} />
-            <AddTimeOffModal employeeId={employeeId} onSaved={fetchData} />
+            <AddTimeOffModal
+              employeeId={employeeId}
+              onSaved={fetchData}
+              open={editTimeOff.open}
+              editData={editTimeOff.data}
+              onClose={() => setEditTimeOff({ open: false, data: null })}
+            />
           </div>
         </div>
 
@@ -176,7 +202,6 @@ export default function SetRotaPage() {
                       >
                         {dayjs(`2000-01-01 ${s.start_time}`).format("h:mma")}–
                         {dayjs(`2000-01-01 ${s.end_time}`).format("h:mma")}
-
                         {/* 3-dot menu */}
                         <button
                           onClick={() =>
@@ -186,14 +211,12 @@ export default function SetRotaPage() {
                         >
                           ⋮
                         </button>
-
-                        {/* Dropdown menu */}
                         {menuOpen === s.id && (
                           <div className="absolute right-0 mt-4 bg-white border rounded-xl shadow-lg text-sm z-20">
                             <button
                               className="block w-full text-left px-4 py-2 hover:bg-gray-50"
                               onClick={() => {
-                                toast("Regular shift setup coming soon!");
+                                setEditModal({ open: true, shift: s });
                                 setMenuOpen(null);
                               }}
                             >
@@ -202,7 +225,7 @@ export default function SetRotaPage() {
                             <button
                               className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-50"
                               onClick={() => {
-                                setConfirmDelete(s.recurrence_id);
+                                setConfirmDelete({ type: "shift", id: s.id });
                                 setMenuOpen(null);
                               }}
                             >
@@ -217,17 +240,51 @@ export default function SetRotaPage() {
                     {offs.map((o) => (
                       <div
                         key={`o-${o.id}`}
-                        className="bg-gray-100 border border-gray-200 rounded-md px-2 py-1 text-gray-500 w-full"
+                        className="bg-gray-100 border border-gray-200 rounded-md px-2 py-1 text-gray-500 w-full relative group"
                       >
                         {dayjs(`2000-01-01 ${o.start_time}`).format("h:mma")}–
                         {dayjs(`2000-01-01 ${o.end_time}`).format("h:mma")}
-                        <div className="text-[10px] text-gray-400">Time off</div>
+                        <div className="text-[10px] text-gray-400">
+                          {o.note ? o.note : "Time off"}
+                        </div>
+
+                        {/* ⋮ Menu */}
+                        <button
+                          onClick={() =>
+                            setMenuOpen(menuOpen === `timeoff-${o.id}` ? null : `timeoff-${o.id}`)
+                          }
+                          className="absolute right-1 top-1 text-gray-400 hover:text-gray-600"
+                        >
+                          ⋮
+                        </button>
+
+                        {menuOpen === `timeoff-${o.id}` && (
+                          <div className="absolute right-0 mt-4 bg-white border rounded-xl shadow-lg text-sm z-20">
+                            <button
+                              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
+                              onClick={() => {
+                                setEditTimeOff({ open: true, data: o });
+                                setMenuOpen(null);
+                              }}
+                            >
+                              Edit Time Off
+                            </button>
+                            <button
+                              className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-50"
+                              onClick={() => {
+                                setConfirmDelete({ type: "timeoff", id: o.id, recurrence_id: o.recurrence_id });
+                                setMenuOpen(null);
+                              }}
+                            >
+                              Delete Time Off
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
 
-                    {/* Empty cell */}
                     {shifts.length === 0 && offs.length === 0 && (
-                      <div className="text-rose-400 text-lg mt-3">+</div>
+                      <div className="text-rose-400 text-lg mt-3">-</div>
                     )}
                   </>
                 )}
@@ -242,10 +299,14 @@ export default function SetRotaPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md text-center">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">
-              Delete this shift?
+              {confirmDelete.type === "timeoff"
+                ? "Delete this time off?"
+                : "Delete this shift?"}
             </h3>
             <p className="text-gray-500 mb-5 text-sm">
-              This will remove all instances of this recurring shift.
+              {confirmDelete.type === "timeoff"
+                ? "This will remove this time off entry."
+                : "This will remove this shift only."}
             </p>
             <div className="flex justify-center gap-3">
               <button
@@ -255,7 +316,11 @@ export default function SetRotaPage() {
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteShift(confirmDelete)}
+                onClick={() =>
+                  confirmDelete.type === "timeoff"
+                    ? handleDeleteTimeOff(confirmDelete)
+                    : handleDeleteShift(confirmDelete)
+                }
                 className="px-5 py-2 rounded-2xl bg-[#c98383] text-white hover:opacity-90"
               >
                 Delete
@@ -264,6 +329,13 @@ export default function SetRotaPage() {
           </div>
         </div>
       )}
+
+      <EditShiftModal
+        open={editModal.open}
+        shift={editModal.shift}
+        onClose={() => setEditModal({ open: false, shift: null })}
+        onSaved={fetchData}
+      />
     </div>
   );
 }

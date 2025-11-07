@@ -23,3 +23,9 @@ export const saveTimeOff = (payload) =>
 // ✅ Delete time-off by recurrence_id
 export const deleteTimeOff = (payload) =>
   http.delete("/api/business/time-off", { data: payload }).then((r) => r.data);
+
+// ✅ Update single shift by ID
+export const updateRota = (id, payload) =>
+  http.put(`/api/business/rota/${id}`, payload).then((r) => r.data);
+
+
