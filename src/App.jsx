@@ -51,7 +51,6 @@ import AppointmentIndex from "./pages/appointment/AppointmentIndex";
 import AppointmentForm from "./pages/appointment/AppointmentForm";
 
 import PaymentSettings from "./pages/payment/PaymentSettings";
-import SmsPackages from "./pages/smspackages/SmsPackages";
 import SmsPackagePayment from "./pages/smspackages/SmsPackagePayment";
 
 import Accountant from "./pages/accountant/Accountant";
@@ -75,17 +74,17 @@ import GiftCardForm from "./pages/gift-cards/GiftCardForm";
 import EmailMessagesIndex from "./pages/email-messages/EmailMessagesIndex";
 import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 
-import LoyaltyCardPage  from "./pages/loyalty/LoyaltyCardPage";
-import LoyaltyProgramPage  from "./pages/loyalty/LoyaltyProgramPage";
+import LoyaltyCardPage from "./pages/loyalty/LoyaltyCardPage";
+import LoyaltyProgramPage from "./pages/loyalty/LoyaltyProgramPage";
 
-// Settings Pages
 import SettingsIndex from "./pages/settings/businessadmin/SettingsIndex";
 import SetRotaPage from "./pages/settings/rota/SetRotaPage";
 
-// Forms
 import BusinessFormsIndex from "./pages/forms/BusinessFormsIndex";
 import BusinessFormEditor from "./pages/forms/BusinessFormEditor";
 
+import BusinessSubscriptionPage from "./pages/subscription/BusinessSubscriptionPage";
+import BusinessAdminProfile from "./pages/dashboard/ProfilePage";
 
 export default function App() {
   return (
@@ -111,7 +110,6 @@ export default function App() {
             <Route path="/admin/income/:id" element={<AdminIncomePage />} />
             <Route path="/admin/expense/:id" element={<AdminExpensePage />} />
             <Route path="/admin/payment-settings" element={<PaymentSettingsPage />} />
-
             <Route path="/admin/sms-packages" element={<SmsPackagesPage />} />
             <Route path="/admin/sms-packages/add" element={<AddSmsPackagePage />} />
             <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />
@@ -130,7 +128,7 @@ export default function App() {
           {/* Business Dashboard Routes */}
           <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<BusinessDashboard />} />
+              <Route index element={<BusinessDashboard />} />
 
               {/* Income */}
               <Route path="income" element={<IncomeIndex />} />
@@ -176,9 +174,6 @@ export default function App() {
               {/* Payment */}
               <Route path="payment" element={<PaymentSettings />} />
 
-              {/* SMS Packages */}
-              <Route path="sms-packages/payment/:id" element={<SmsPackagePayment />} />
-
               {/* Accountant */}
               <Route path="accountant" element={<Accountant />} />
               <Route path="accountant/add" element={<AddAccountant />} />
@@ -205,21 +200,23 @@ export default function App() {
               <Route path="forms/new" element={<BusinessFormEditor />} />
               <Route path="forms/:id/edit" element={<BusinessFormEditor />} />
 
+              <Route path="subscription" element={<BusinessSubscriptionPage />} />
+
+              {/* Profile */}
+              <Route path="profile" element={<BusinessAdminProfile />} />
+
               {/* Business Settings */}
               <Route path="settings" element={<SettingsIndex />} />
               <Route path="settings/set-rota" element={<SetRotaPage />} />
-
             </Route>
           </Route>
 
           {/* Accountant Routes */}
-          <Route path="/accountant/login" element={<AccountantLogin />} />  
+          <Route path="/accountant/login" element={<AccountantLogin />} />
           <Route element={<ProtectedRoute allowedRoles={["accountant"]} />}>
-
             <Route path="/accountant" element={<AccountantLayout />}>
               <Route index element={<AccountantDashboard />} />
               <Route path="dashboard" element={<AccountantDashboard />} />
-
               <Route path="income" element={<AccountantIncome />} />
               <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
               <Route path="expense" element={<AccountantExpense />} />
