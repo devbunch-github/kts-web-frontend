@@ -50,11 +50,17 @@ export default function SetupBusinessModal() {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData();
+
     fd.append("name", form.business_name);
     form.services.forEach((s) => fd.append("services[]", s.value));
     fd.append("country", form.country);
     fd.append("city", form.city);
     fd.append("address", form.address);
+
+    // ✅ Generate or send subdomain
+    const subdomain = form.subdomain || form.business_name.toLowerCase().replace(/\s+/g, "-");
+    fd.append("subdomain", subdomain);
+
     if (form.logo) fd.append("logo", form.logo);
     if (form.cover) fd.append("cover", form.cover);
 
@@ -70,6 +76,7 @@ export default function SetupBusinessModal() {
       setLoading(false);
     }
   };
+
 
   if (!open) return null;
 

@@ -86,6 +86,15 @@ import BusinessFormEditor from "./pages/forms/BusinessFormEditor";
 import BusinessSubscriptionPage from "./pages/subscription/BusinessSubscriptionPage";
 import BusinessAdminProfile from "./pages/dashboard/ProfilePage";
 
+import BusinessReports from "./pages/businessreports/BusinessReports.jsx";
+import ServiceReport from "./pages/reports/ServiceReport.jsx";
+import ClientReport from "./pages/reports/ClientReport.jsx";
+import AppointmentCompletionReport from "./pages/reports/AppointmentCompletionReport.jsx";
+import ProfitLossReport from "./pages/reports/ProfitLossReport.jsx";
+import CancellationReport from "./pages/reports/CancellationReport.jsx";
+import IncomeSaleReport from "./pages/reports/IncomeSaleReport.jsx";
+import ClientRetentionReport from "./pages/reports/ClientRetentionReport.jsx";
+
 export default function App() {
   return (
     <>
@@ -129,6 +138,16 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<BusinessDashboard />} />
+
+              {/* Reports */}
+              <Route path="reports" element={<BusinessReports />} />
+              <Route path="reports/service-report" element={<ServiceReport />} />
+              <Route path="reports/client-report" element={<ClientReport />} />
+              <Route path="reports/appointment-report" element={<AppointmentCompletionReport />} />
+              <Route path="reports/profitloss-report" element={<ProfitLossReport />} />
+              <Route path="reports/cancellation-report" element={<CancellationReport />} />
+              <Route path="reports/sale-report" element={<IncomeSaleReport />} />
+              <Route path="reports/retention-report" element={<ClientRetentionReport />} />
 
               {/* Income */}
               <Route path="income" element={<IncomeIndex />} />

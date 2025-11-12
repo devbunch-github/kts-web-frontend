@@ -29,6 +29,7 @@ export default function DashboardLayout() {
   const toggleMenu = (name) =>
     setOpenMenu((prev) => (prev === name ? null : name));
 
+  /* ---------- Profile dropdown outside click ---------- */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target))
@@ -38,6 +39,7 @@ export default function DashboardLayout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /* ---------- Subscription check ---------- */
   useEffect(() => {
     (async () => {
       try {
@@ -54,7 +56,7 @@ export default function DashboardLayout() {
     })();
   }, []);
 
-  // ✅ Load user info for topbar
+  /* ---------- Load user info ---------- */
   useEffect(() => {
     (async () => {
       try {
@@ -69,6 +71,7 @@ export default function DashboardLayout() {
     })();
   }, []);
 
+  /* ---------- Sidebar Menu ---------- */
   const menu = [
     { name: "Dashboard", path: "/dashboard", icon: "📊" },
     { name: "Income", path: "/dashboard/income" },
@@ -97,6 +100,24 @@ export default function DashboardLayout() {
     { name: "Loyalty Program", path: "/dashboard/loyalty-program" },
     { name: "Forms", path: "/dashboard/forms" },
     {
+      name: "Reports",
+      path: "/dashboard/reports",
+      hasChildren: true,
+      children: [
+        { name: "Overview", path: "/dashboard/reports" },
+        { name: "Service Report", path: "/dashboard/reports/service-report" },
+        { name: "Client Report", path: "/dashboard/reports/client-report" },
+        {
+          name: "Appointment Completion",
+          path: "/dashboard/reports/appointment-report",
+        },
+        { name: "Profit & Loss Report", path: "/dashboard/reports/profitloss-report" },
+        { name: "Cancellation Report", path: "/dashboard/reports/cancellation-report" },
+        { name: "Income-Sale", path: "/dashboard/reports/sale-report" },
+        { name: "Client Retention Rate", path: "/dashboard/reports/retention-report" },
+      ],
+    },
+    {
       name: "Settings",
       path: "/dashboard/settings",
       hasChildren: true,
@@ -116,9 +137,12 @@ export default function DashboardLayout() {
     ["expired", "cancelled", "inactive"].includes(subStatus) &&
     !location.pathname.includes("/dashboard/subscription");
 
+  /* =====================================================
+     LAYOUT
+  ===================================================== */
   return (
     <div className="min-h-screen flex bg-[#faf7f7] relative">
-      {/* Sidebar */}
+      {/* ================= Sidebar ================= */}
       <aside
         className={`hidden md:flex flex-col w-60 bg-white border-r border-gray-200 px-4 py-6 text-sm transition-all duration-300 ${
           isLocked ? "opacity-60 blur-[1px] pointer-events-none" : ""
@@ -127,27 +151,83 @@ export default function DashboardLayout() {
         <div className="flex items-center gap-2 mb-8 px-2">
           <img src="/images/icons/appt.live.png" alt="logo" className="h-6" />
         </div>
+
         <nav className="space-y-1">
-          {menu.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`block px-3 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname.startsWith(item.path)
-                  ? "bg-rose-100 text-rose-700"
-                  : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
-              }`}
-            >
-              {item.icon && <span className="mr-2">{item.icon}</span>}
-              {item.name}
-            </Link>
-          ))}
+          {menu.map((item) => {
+            /* ---------- Collapsible Menu ---------- */
+            if (item.hasChildren) {
+              const isOpen =
+                openMenu === item.name ||
+                item.children.some((child) =>
+                  location.pathname.startsWith(child.path)
+                );
+
+              return (
+                <div key={item.name}>
+                  <button
+                    onClick={() => toggleMenu(item.name)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors ${
+                      isOpen
+                        ? "bg-rose-100 text-rose-700"
+                        : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {item.icon && <span>{item.icon}</span>}
+                      {item.name}
+                    </span>
+                    {isOpen ? (
+                      <ChevronDown size={16} className="text-rose-500" />
+                    ) : (
+                      <ChevronRight size={16} className="text-gray-400" />
+                    )}
+                  </button>
+
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ml-4 border-l border-rose-100 ${
+                      isOpen ? "max-h-[400px] opacity-100 mt-1" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.path}
+                        to={child.path}
+                        className={`relative block pl-4 pr-3 py-2 text-sm rounded-lg font-medium transition-colors ${
+                          location.pathname === child.path
+                            ? "text-rose-700 bg-rose-50 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:bg-rose-400"
+                            : "text-gray-600 hover:text-rose-700 hover:bg-rose-50"
+                        }`}
+                      >
+                        {child.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            /* ---------- Single Menu Item ---------- */
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`block px-3 py-2 rounded-lg font-medium transition-colors ${
+                  location.pathname.startsWith(item.path)
+                    ? "bg-rose-100 text-rose-700"
+                    : "text-gray-700 hover:bg-rose-50 hover:text-rose-700"
+                }`}
+              >
+                {item.icon && <span className="mr-2">{item.icon}</span>}
+                {item.name}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
-      {/* Main Content */}
+      {/* ================= Main Content ================= */}
       <main className="flex-1 relative">
-        {/* Topbar */}
+        {/* ---------- Topbar ---------- */}
         <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200 px-6 py-3 flex items-center justify-end">
           <div className="flex items-center gap-4">
             <NotificationDropdown />
@@ -160,7 +240,7 @@ export default function DashboardLayout() {
               <span className="text-sm font-medium">Notes</span>
             </button>
 
-            {/* Profile Dropdown */}
+            {/* ---------- Profile Dropdown ---------- */}
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
@@ -211,13 +291,15 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        {/* Page */}
+        {/* ---------- Page Content ---------- */}
         <div className="p-6 md:p-10">
           <Outlet />
         </div>
 
         <SetupBusinessModal />
         <BusinessTodoModal open={todoOpen} onClose={() => setTodoOpen(false)} />
+
+        {/* ---------- Subscription Lock Overlay ---------- */}
         {isLocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#faf7f7]/60 backdrop-blur-sm z-50">
             <SubscriptionExpired />
