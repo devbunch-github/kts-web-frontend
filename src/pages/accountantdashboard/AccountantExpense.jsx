@@ -27,29 +27,50 @@ export default function AccountantExpense() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ type: "", message: "" });
-
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [imageModal, setImageModal] = useState({ open: false, src: "" });
+
+  // 🔹 Fiscal year state
+  const [fiscalYears, setFiscalYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null);
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [expenseData, categoryData] = await Promise.all([
-          fetchAccountantExpenses(),
-          fetchAccountantCategories(),
-        ]);
-        setExpenses(expenseData);
-        setFiltered(expenseData);
-        setCategories(categoryData);
-      } catch {
-        showAlert("error", "Failed to load data.");
-      } finally {
-        setLoading(false);
+  // ✅ Load Data (initial + fiscal year aware)
+  const loadData = async (start_date, end_date, keepSelection = false) => {
+    setLoading(true);
+    try {
+      const [expenseRes, categoryRes] = await Promise.all([
+        fetchAccountantExpenses(
+          start_date && end_date ? { start_date, end_date } : {}
+        ),
+        fetchAccountantCategories(),
+      ]);
+
+      // Backend now returns { expenses, available_years, active_fiscal_year }
+      const expenseData = expenseRes.expenses || [];
+      setExpenses(expenseData);
+      setFiltered(expenseData);
+      setCategories(categoryRes);
+
+      setFiscalYears(expenseRes.available_years || []);
+      if (!keepSelection && !selectedYear) {
+        setSelectedYear({
+          label: expenseRes.active_fiscal_year?.label,
+          start: expenseRes.active_fiscal_year?.start_date,
+          end: expenseRes.active_fiscal_year?.end_date,
+        });
       }
-    };
+    } catch {
+      showAlert("error", "Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -80,6 +101,7 @@ export default function AccountantExpense() {
     setCurrentPage(1);
   }, [search, selectedCategory, expenses]);
 
+  // Pagination
   const totalPages = Math.ceil(filtered.length / entriesPerPage);
   const paginated = filtered.slice(
     (currentPage - 1) * entriesPerPage,
@@ -148,7 +170,68 @@ export default function AccountantExpense() {
         </h2>
       </div>
 
+      {/* Fiscal Year + Summary */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-800">
+            Fiscal Year
+          </label>
+          <select
+            className="border border-[#f28c38]/50 rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#f28c38]"
+            value={selectedYear?.label || ""}
+            onChange={(e) => {
+              const selected = fiscalYears.find(
+                (y) => y.label === e.target.value
+              );
+              if (!selected) return;
+              setSelectedYear(selected);
+              loadData(selected.start, selected.end, true);
+            }}
+          >
+            {fiscalYears.map((y) => (
+              <option key={y.label} value={y.label}>
+                {y.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => navigate("/accountant/summary")}
+          className="px-5 py-1.5 bg-[#f28c38] hover:bg-[#d87b2f] text-white rounded-md text-sm font-medium shadow-sm transition"
+        >
+          Summary
+        </button>
+      </div>
+
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.05)] p-6">
+        {/* ✅ Fiscal Year Dropdown */}
+        {/* <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-800">
+              Fiscal Year
+            </label>
+            <select
+              className="border border-[#f28c38]/50 rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#f28c38]"
+              value={selectedYear?.label || ""}
+              onChange={(e) => {
+                const selected = fiscalYears.find(
+                  (y) => y.label === e.target.value
+                );
+                if (!selected) return;
+                setSelectedYear(selected);
+                loadData(selected.start, selected.end, true);
+              }}
+            >
+              {fiscalYears.map((y) => (
+                <option key={y.label} value={y.label}>
+                  {y.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div> */}
+
         {/* ✅ Category Filter */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-800 mb-1">
@@ -169,7 +252,6 @@ export default function AccountantExpense() {
         </div>
 
         {/* Show Entries + Search */}
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-700">Show</label>
@@ -207,7 +289,8 @@ export default function AccountantExpense() {
               <tr className="border-b text-gray-600">
                 <th className="py-2">Date</th>
                 <th className="py-2">Supplier</th>
-                <th className="py-2">Expense Amount</th>
+                <th className="py-2">Category</th>
+                <th className="py-2 text-right">Expense Amount</th>
                 <th className="py-2">Payment Method</th>
                 <th className="py-2 text-center">Actions</th>
               </tr>
@@ -215,8 +298,8 @@ export default function AccountantExpense() {
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center text-gray-400">
-                    No records found
+                  <td colSpan={6} className="py-4 text-center text-gray-400">
+                    No expense records found for fiscal year {selectedYear?.label}.
                   </td>
                 </tr>
               ) : (
@@ -227,18 +310,20 @@ export default function AccountantExpense() {
                   >
                     <td className="py-2">{formatDate(row.PaidDateTime)}</td>
                     <td className="py-2">{row.Supplier || "-"}</td>
-                    <td className="py-2">£ {Number(row.Amount).toFixed(2)}</td>
+                    <td className="py-2">{row.CategoryName || "-"}</td>
+                    <td className="py-2 text-right">
+                      £ {Number(row.Amount).toFixed(2)}
+                    </td>
                     <td className="py-2">{row.PaymentMethod || "-"}</td>
                     <td className="py-2 text-center flex justify-center gap-3">
-                        {/* Show "View Image" only if ReceiptUrl is not empty */}
-                        {row.ReceiptUrl && row.ReceiptUrl.trim() !== "" && (
-                            <button
-                            onClick={() => openImageModal(row.ReceiptUrl)}
-                            className="px-3 py-1.5 text-xs font-medium bg-[#f28c38] text-white rounded-md hover:bg-[#d97a2f] transition"
-                            >
-                            View Image
-                            </button>
-                        )}
+                      {row.ReceiptUrl && row.ReceiptUrl.trim() !== "" && (
+                        <button
+                          onClick={() => openImageModal(row.ReceiptUrl)}
+                          className="px-3 py-1.5 text-xs font-medium bg-[#f28c38] text-white rounded-md hover:bg-[#d97a2f] transition"
+                        >
+                          View Image
+                        </button>
+                      )}
                       <button
                         onClick={() => navigate(`/accountant/expense/edit/${row.Id}`)}
                         className="flex items-center gap-1 hover:text-[#d06f26] font-medium text-sm"

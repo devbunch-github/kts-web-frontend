@@ -64,6 +64,7 @@ import AccountantIncome from "./pages/accountantdashboard/AccountantIncome";
 import AccountantIncomeEdit from "./pages/accountantdashboard/AccountantIncomeEdit";
 import AccountantExpense from "./pages/accountantdashboard/AccountantExpense";
 import AccountantExpenseEdit from "./pages/accountantdashboard/AccountantExpenseEdit";
+import AccountantSummary from "./pages/accountantdashboard/AccountantSummary";
 import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
 
 import PromoCodeIndex from "./pages/PromoCodes/PromoCodeIndex";
@@ -202,6 +203,7 @@ export default function App() {
               <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
               <Route path="expense" element={<AccountantExpense />} />
               <Route path="expense/edit/:id" element={<AccountantExpenseEdit />} />
+              <Route path="summary" element={<AccountantSummary />} />
             </Route>
           </Route>
         </Routes>

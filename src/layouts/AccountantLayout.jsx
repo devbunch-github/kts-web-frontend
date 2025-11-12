@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
-import { LayoutDashboard, DollarSign, Receipt } from "lucide-react";
+import { LayoutDashboard, DollarSign, Receipt, CalendarCog  } from "lucide-react";
 
 export default function AccountantLayout() {
   const navigate = useNavigate();
@@ -94,6 +94,18 @@ export default function AccountantLayout() {
                 }
               >
                 <Receipt className="w-4 h-4" /> Expense
+              </NavLink>
+              <NavLink
+                to="/accountant/summary"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-2 font-medium ${
+                    isActive
+                      ? "bg-[#f28c38] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <CalendarCog className="w-4 h-4" /> Summary
               </NavLink>
             </nav>
           </aside>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileBarChart, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileBarChart, Pencil, Trash2, ChevronLeft, ChevronRight, CheckCircle, XCircle, } from "lucide-react";
 import {
   fetchAccountantIncome,
   deleteAccountantIncome,
@@ -12,29 +12,47 @@ export default function AccountantIncome() {
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [alert, setAlert] = useState({ type: "", message: "" });
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [alert, setAlert] = useState({ type: "", message: "" });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [fiscalYears, setFiscalYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch income data
+  // Fetch incomes (default fiscal year)
   useEffect(() => {
-    const loadIncome = async () => {
-      try {
-        const data = await fetchAccountantIncome();
-        setIncomes(data || []);
-        setFiltered(data || []);
-      } catch (error) {
-        showAlert("error", "Failed to load income data. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
     loadIncome();
   }, []);
+
+  const loadIncome = async (start_date, end_date, keepSelection = false) => {
+    setLoading(true);
+    try {
+      const res = await fetchAccountantIncome(
+        start_date && end_date ? { start_date, end_date } : {}
+      );
+      setIncomes(res.incomes || []);
+      setFiltered(res.incomes || []);
+
+      // Always update the list of available fiscal years
+      setFiscalYears(res.available_years || []);
+
+      // ✅ Only set selectedYear on first load or if not keeping user selection
+      if (!keepSelection && !selectedYear) {
+        setSelectedYear({
+          label: res.active_fiscal_year?.label,
+          start: res.active_fiscal_year?.start_date,
+          end: res.active_fiscal_year?.end_date,
+        });
+      }
+    } catch {
+      showAlert("error", "Failed to load income data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     const showAlert = (type, message) => {
         setAlert({ type, message });
@@ -121,6 +139,38 @@ export default function AccountantIncome() {
         </h2>
       </div>
 
+      {/* Fiscal Year + Summary */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700">
+            Fiscal Year
+          </label>
+          <select
+            className="border border-[#f28c38]/50 rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#f28c38]"
+            value={selectedYear?.label || ""}
+            onChange={(e) => {
+              const selected = fiscalYears.find((y) => y.label === e.target.value);
+              if (!selected) return;
+              setSelectedYear(selected);
+              loadIncome(selected.start, selected.end, true); // ✅ preserve selection
+            }}
+          >
+            {fiscalYears.map((y) => (
+              <option key={y.label} value={y.label}>
+                {y.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => navigate("/accountant/summary")}
+          className="px-5 py-1.5 bg-[#f28c38] hover:bg-[#d87b2f] text-white rounded-md text-sm font-medium shadow-sm transition"
+        >
+          Summary
+        </button>
+      </div>
+
       {/* Table Container */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.05)] p-6">
         {/* Top Controls */}
@@ -174,7 +224,9 @@ export default function AccountantIncome() {
               {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-4 text-center text-gray-400">
-                    No records found
+                    <p className="text-center text-sm text-gray-400 mt-3">
+                      No income records found for fiscal year {selectedYear?.label}.
+                    </p>
                   </td>
                 </tr>
               ) : (
