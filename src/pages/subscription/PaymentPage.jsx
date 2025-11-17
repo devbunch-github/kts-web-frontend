@@ -23,7 +23,7 @@ export default function PaymentPage() {
     setLoading({ stripe: true, paypal: false });
     setError("");
     try {
-      const res = await createStripeSession({ plan_id: plan.id, user_id: userId });
+      const res = await createStripeSession({ plan_id: plan.id, user_id: userId, is_signup: true, });
       const redirectUrl = res?.checkoutUrl;
       if (redirectUrl) {
         window.location.href = redirectUrl;

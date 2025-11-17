@@ -49,3 +49,8 @@ export const deleteUploadedFile = async (path) => {
     throw err;
   }
 };
+
+export const listServicesByCategory = async (accountId, categoryId) => {
+  const all = await listServices({ account_id: accountId });
+  return all?.data?.filter(s => s.CategoryId == categoryId) || [];
+};

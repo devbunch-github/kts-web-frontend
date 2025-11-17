@@ -51,7 +51,6 @@ import AppointmentIndex from "./pages/appointment/AppointmentIndex";
 import AppointmentForm from "./pages/appointment/AppointmentForm";
 
 import PaymentSettings from "./pages/payment/PaymentSettings";
-import SmsPackages from "./pages/smspackages/SmsPackages";
 import SmsPackagePayment from "./pages/smspackages/SmsPackagePayment";
 
 import Accountant from "./pages/accountant/Accountant";
@@ -79,12 +78,43 @@ import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 import ClientLayout from "./layouts/ClientLayout";
 import ClientLogin from "./pages/client/ClientLogin";
 import ClientDashboard  from "./pages/client/ClientDashboard";
+import LoyaltyCardPage from "./pages/loyalty/LoyaltyCardPage";
+import LoyaltyProgramPage from "./pages/loyalty/LoyaltyProgramPage";
+
+import SettingsIndex from "./pages/settings/businessadmin/SettingsIndex";
+import SetRotaPage from "./pages/settings/rota/SetRotaPage";
+
+import BusinessFormsIndex from "./pages/forms/BusinessFormsIndex";
+import BusinessFormEditor from "./pages/forms/BusinessFormEditor";
+
+import BusinessSubscriptionPage from "./pages/subscription/BusinessSubscriptionPage";
+import BusinessAdminProfile from "./pages/dashboard/ProfilePage";
+
+import BusinessReports from "./pages/businessreports/BusinessReports.jsx";
+import ServiceReport from "./pages/reports/ServiceReport.jsx";
+import ClientReport from "./pages/reports/ClientReport.jsx";
+import AppointmentCompletionReport from "./pages/reports/AppointmentCompletionReport.jsx";
+import ProfitLossReport from "./pages/reports/ProfitLossReport.jsx";
+import CancellationReport from "./pages/reports/CancellationReport.jsx";
+import IncomeSaleReport from "./pages/reports/IncomeSaleReport.jsx";
+import ClientRetentionReport from "./pages/reports/ClientRetentionReport.jsx";
+
+import BusinessHomePage from "./pages/public/BusinessHomePage.jsx";
+import CategoryServicesPage from "./pages/public/CategoryServicesPage.jsx";
+import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
+import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
 
 export default function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
+
+          <Route path="/business" element={<BusinessHomePage />} />
+          <Route path="/business/categories/:id" element={<CategoryServicesPage />} />
+          <Route path="/business/services/:serviceId/professionals" element={<ChooseProfessionalPage />}/>
+          <Route path="/business/booking/:serviceId/:employeeId" element={<ChooseAppointmentPage />} />
+
           {/* Public Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
@@ -104,7 +134,6 @@ export default function App() {
             <Route path="/admin/income/:id" element={<AdminIncomePage />} />
             <Route path="/admin/expense/:id" element={<AdminExpensePage />} />
             <Route path="/admin/payment-settings" element={<PaymentSettingsPage />} />
-
             <Route path="/admin/sms-packages" element={<SmsPackagesPage />} />
             <Route path="/admin/sms-packages/add" element={<AddSmsPackagePage />} />
             <Route path="/admin/sms-packages/edit/:id" element={<AddSmsPackagePage />} />
@@ -123,7 +152,17 @@ export default function App() {
           {/* Business Dashboard Routes */}
           <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<BusinessDashboard />} />
+              <Route index element={<BusinessDashboard />} />
+
+              {/* Reports */}
+              <Route path="reports" element={<BusinessReports />} />
+              <Route path="reports/service-report" element={<ServiceReport />} />
+              <Route path="reports/client-report" element={<ClientReport />} />
+              <Route path="reports/appointment-report" element={<AppointmentCompletionReport />} />
+              <Route path="reports/profitloss-report" element={<ProfitLossReport />} />
+              <Route path="reports/cancellation-report" element={<CancellationReport />} />
+              <Route path="reports/sale-report" element={<IncomeSaleReport />} />
+              <Route path="reports/retention-report" element={<ClientRetentionReport />} />
 
               {/* Income */}
               <Route path="income" element={<IncomeIndex />} />
@@ -169,9 +208,6 @@ export default function App() {
               {/* Payment */}
               <Route path="payment" element={<PaymentSettings />} />
 
-              {/* SMS Packages */}
-              <Route path="sms-packages/payment/:id" element={<SmsPackagePayment />} />
-
               {/* Accountant */}
               <Route path="accountant" element={<Accountant />} />
               <Route path="accountant/add" element={<AddAccountant />} />
@@ -191,17 +227,30 @@ export default function App() {
               <Route path="email-messages" element={<EmailMessagesIndex />} />
               <Route path="email-messages/:id/edit" element={<EmailMessageEdit />} />
 
+              <Route path="loyalty-card" element={<LoyaltyCardPage />} />
+              <Route path="loyalty-program" element={<LoyaltyProgramPage />} />
+
+              <Route path="forms" element={<BusinessFormsIndex />} />
+              <Route path="forms/new" element={<BusinessFormEditor />} />
+              <Route path="forms/:id/edit" element={<BusinessFormEditor />} />
+
+              <Route path="subscription" element={<BusinessSubscriptionPage />} />
+
+              {/* Profile */}
+              <Route path="profile" element={<BusinessAdminProfile />} />
+
+              {/* Business Settings */}
+              <Route path="settings" element={<SettingsIndex />} />
+              <Route path="settings/set-rota" element={<SetRotaPage />} />
             </Route>
           </Route>
 
           {/* Accountant Routes */}
-          <Route path="/accountant/login" element={<AccountantLogin />} />  
+          <Route path="/accountant/login" element={<AccountantLogin />} />
           <Route element={<ProtectedRoute allowedRoles={["accountant"]} />}>
-
             <Route path="/accountant" element={<AccountantLayout />}>
               <Route index element={<AccountantDashboard />} />
               <Route path="dashboard" element={<AccountantDashboard />} />
-
               <Route path="income" element={<AccountantIncome />} />
               <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
               <Route path="expense" element={<AccountantExpense />} />
