@@ -76,6 +76,9 @@ import GiftCardForm from "./pages/gift-cards/GiftCardForm";
 import EmailMessagesIndex from "./pages/email-messages/EmailMessagesIndex";
 import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 
+import ClientLayout from "./layouts/ClientLayout";
+import ClientLogin from "./pages/client/ClientLogin";
+import ClientDashboard  from "./pages/client/ClientDashboard";
 
 export default function App() {
   return (
@@ -206,7 +209,23 @@ export default function App() {
               <Route path="summary" element={<AccountantSummary />} />
             </Route>
           </Route>
+
+          {/* Client Login */}
+          <Route path="/login" element={<ClientLogin />} />
+
+          {/* Protected Client Routes */}
+          <Route element={ <ProtectedRoute allowedRoles={["customer"]} /> }>
+            <Route path="/client" element={<ClientLayout />}>
+              <Route index element={<ClientDashboard />} />
+              <Route path="/client/dashboard" element={<ClientDashboard />} />
+            </Route>
+          </Route>
+
+          
         </Routes>
+
+
+
       </BrowserRouter>
 
       {/* ✅ Toaster */}

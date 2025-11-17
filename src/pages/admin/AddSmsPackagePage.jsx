@@ -80,7 +80,7 @@ const AddSmsPackagePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f5f4] flex flex-col font-[Inter]">
+    <div className="min-h-screen bg-[#f9f5f4] flex flex-col">
       <AdminHeader />
 
       <div className="flex flex-1 w-full max-w-[1400px] mx-auto">
@@ -139,6 +139,7 @@ const AddSmsPackagePage = () => {
                 <input
                   type="number"
                   name="total_sms"
+                  min="1"
                   value={form.total_sms}
                   onChange={handleChange}
                   placeholder="e.g. 100"
@@ -155,6 +156,7 @@ const AddSmsPackagePage = () => {
                 <input
                   type="number"
                   name="price"
+                  min="0"
                   value={form.price}
                   onChange={handleChange}
                   placeholder="e.g. £100.00"

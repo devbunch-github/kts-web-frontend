@@ -5,6 +5,7 @@ import AdminSidebar from "../../components/layout/SuperAdminSidebar";
 import AdminFooter from "../../components/layout/SuperAdminFooter";
 import { getSubscriptionPlans, deleteSubscriptionPackage  } from "../../api/publicApi";
 import ConfirmModal from "../../components/ConfirmModal";
+import { ConciergeBell } from "lucide-react";
 
 const SubscriptionPackages = () => {
     const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -104,19 +105,11 @@ const SubscriptionPackages = () => {
         <main className="flex-1 p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#a8626b"
-                  strokeWidth="1.5"
-                >
-                  <rect x="4" y="4" width="16" height="16" rx="3" />
-                </svg>
+            <div className="flex items-center gap-2 mb-6">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/70">
+                <ConciergeBell size={16} strokeWidth={2} className="text-white" />
               </span>
+
               <h1 className="text-xl font-semibold text-gray-800">
                 Subscription Packages
               </h1>
