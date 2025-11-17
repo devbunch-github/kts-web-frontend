@@ -95,11 +95,22 @@ import CancellationReport from "./pages/reports/CancellationReport.jsx";
 import IncomeSaleReport from "./pages/reports/IncomeSaleReport.jsx";
 import ClientRetentionReport from "./pages/reports/ClientRetentionReport.jsx";
 
+import BusinessHomePage from "./pages/public/BusinessHomePage.jsx";
+import CategoryServicesPage from "./pages/public/CategoryServicesPage.jsx";
+import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
+import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
+
 export default function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
+
+          <Route path="/business" element={<BusinessHomePage />} />
+          <Route path="/business/categories/:id" element={<CategoryServicesPage />} />
+          <Route path="/business/services/:serviceId/professionals" element={<ChooseProfessionalPage />}/>
+          <Route path="/business/booking/:serviceId/:employeeId" element={<ChooseAppointmentPage />} />
+
           {/* Public Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
