@@ -64,7 +64,7 @@ const AdminIncomePage = () => {
   const totalIncome = filtered.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#f9f5f4] flex flex-col font-[Inter]">
+    <div className="min-h-screen bg-[#f9f5f4] flex flex-col ">
       <AdminHeader />
 
       <div className="flex flex-1 w-full max-w-[1400px] mx-auto">
@@ -122,7 +122,7 @@ const AdminIncomePage = () => {
             </div>
 
             <button
-              className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm hover:bg-gray-50 transition"
+              className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm mt-5 hover:bg-gray-50 transition"
               onClick={() => {}}
             >
               Filter
@@ -138,7 +138,7 @@ const AdminIncomePage = () => {
               </svg>
             </button>
 
-            <button className="ml-auto bg-rose-500 text-white text-sm font-medium rounded-md px-4 py-2 hover:bg-rose-600 transition">
+            <button className="ml-auto bg-rose-500 text-white text-sm font-medium rounded-md px-4 py-2 mt-6 hover:bg-rose-600 transition">
               Export
             </button>
           </div>

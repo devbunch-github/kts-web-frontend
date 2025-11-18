@@ -4,14 +4,14 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 export default function ProtectedRoute({ allowedRoles = [] }) {
   const location = useLocation();
 
-  // 🔹 State to react to login/logout changes dynamically
+  // 🔹 Dynamic auth state
   const [authState, setAuthState] = useState({
     token: localStorage.getItem("authToken"),
     userRole: localStorage.getItem("userRole"),
     user: JSON.parse(localStorage.getItem("user") || "{}"),
   });
 
-  // 🔁 Watch for custom login/logout events to auto-update
+  // 🔁 Listen to global login/logout events
   useEffect(() => {
     const handleAuthChange = () => {
       setAuthState({
@@ -32,35 +32,49 @@ export default function ProtectedRoute({ allowedRoles = [] }) {
 
   const { token, userRole, user } = authState;
 
-  // Helper: decide where to send user for login
+  // 🔎 Determine which login screen a user should go to
   const getLoginRedirect = () => {
-    if (location.pathname.startsWith("/accountant")) {
+    const path = location.pathname;
+
+    // Customer area
+    if (path.startsWith("/client")) {
+      return "/login";
+    }
+
+    // Accountant area
+    if (path.startsWith("/accountant")) {
       return "/accountant/login";
-    } else if (location.pathname.startsWith("/business")) {
-      return "/admin/login";
-    } else if (location.pathname.startsWith("/dashboard")) {
-      // business dashboard shortcut
-      return "/admin/login";
-    } else {
+    }
+
+    // Business area
+    if (path.startsWith("/business")) {
       return "/admin/login";
     }
+
+    // General dashboard fallback (business/admin)
+    if (path.startsWith("/dashboard")) {
+      return "/admin/login";
+    }
+
+    // DEFAULT fallback → Admin login
+    return "/admin/login";
   };
 
-  // 🔒 No token → force login
+  // 🔒 If no token → login redirect
   if (!token) {
     return <Navigate to={getLoginRedirect()} replace />;
   }
 
-  // Missing user or role → force login again
+  // 🔒 Missing user data → login redirect
   if (!user || !userRole) {
     return <Navigate to={getLoginRedirect()} replace />;
   }
 
-  // Role not permitted → Unauthorized page
+  // ❌ Role not allowed → go to unauthorized
   if (allowedRoles.length && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Authorized — render nested route
+  // ✔ Authorized → Render page
   return <Outlet />;
 }

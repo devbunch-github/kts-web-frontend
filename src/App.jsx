@@ -63,6 +63,7 @@ import AccountantIncome from "./pages/accountantdashboard/AccountantIncome";
 import AccountantIncomeEdit from "./pages/accountantdashboard/AccountantIncomeEdit";
 import AccountantExpense from "./pages/accountantdashboard/AccountantExpense";
 import AccountantExpenseEdit from "./pages/accountantdashboard/AccountantExpenseEdit";
+import AccountantSummary from "./pages/accountantdashboard/AccountantSummary";
 import BusinessDashboard from "./pages/dashboard/BusinessDashboard";
 
 import PromoCodeIndex from "./pages/PromoCodes/PromoCodeIndex";
@@ -74,6 +75,9 @@ import GiftCardForm from "./pages/gift-cards/GiftCardForm";
 import EmailMessagesIndex from "./pages/email-messages/EmailMessagesIndex";
 import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 
+import ClientLayout from "./layouts/ClientLayout";
+import ClientLogin from "./pages/client/ClientLogin";
+import ClientDashboard  from "./pages/client/ClientDashboard";
 import LoyaltyCardPage from "./pages/loyalty/LoyaltyCardPage";
 import LoyaltyProgramPage from "./pages/loyalty/LoyaltyProgramPage";
 
@@ -251,9 +255,26 @@ export default function App() {
               <Route path="income/edit/:id" element={<AccountantIncomeEdit />} />
               <Route path="expense" element={<AccountantExpense />} />
               <Route path="expense/edit/:id" element={<AccountantExpenseEdit />} />
+              <Route path="summary" element={<AccountantSummary />} />
             </Route>
           </Route>
+
+          {/* Client Login */}
+          <Route path="/login" element={<ClientLogin />} />
+
+          {/* Protected Client Routes */}
+          <Route element={ <ProtectedRoute allowedRoles={["customer"]} /> }>
+            <Route path="/client" element={<ClientLayout />}>
+              <Route index element={<ClientDashboard />} />
+              <Route path="/client/dashboard" element={<ClientDashboard />} />
+            </Route>
+          </Route>
+
+          
         </Routes>
+
+
+
       </BrowserRouter>
 
       {/* ✅ Toaster */}

@@ -14,10 +14,25 @@ export const loginAccountant = async (data) => {
 export const fetchAccountantDashboard = () =>
   axios.get("/api/accountant/dashboard").then((r) => r.data);
 
+// New function: Only fetch summary card data
+export const fetchBusinessSummary = async () => {
+  const res = await axios.get("/api/accountant/dashboard/summary");
+  const payload = res.data?.data?.current || {};
+
+  return {
+    tax: Number(payload.taxLiability || 0),
+    profit: Number(payload.profit || 0),
+    income_total: Number(payload.revenue || 0),
+    expense_total: Number(payload.expenses || 0),
+    period: res.data?.data?.period || {},
+    forecasted: res.data?.data?.forecasted || {},
+  };
+};
+
 // Fetch Accountant Income List
-export const fetchAccountantIncome = () =>
+export const fetchAccountantIncome = (params = {}) =>
   axios
-    .get("/api/accountant/income")
+    .get("/api/accountant/income", { params })
     .then((r) => r.data)
     .catch((err) => {
       console.error("Error fetching accountant income:", err);
@@ -36,9 +51,9 @@ export const deleteAccountantIncome = (id) =>
       throw err;
     });
 
-export const fetchAccountantExpenses = () =>
+export const fetchAccountantExpenses = (params = {}) =>
   axios
-    .get("/api/accountant/expenses")
+    .get("/api/accountant/expenses", { params })
     .then((r) => r.data)
     .catch((err) => {
       console.error("Error fetching accountant expenses:", err);
@@ -74,3 +89,23 @@ export const fetchAccountantExpenseById = (id) =>
 
 export const updateAccountantExpense = (id, payload) =>
   axios.put(`/api/accountant/expense/${id}`, payload).then((r) => r.data);
+
+// Generate Accountant Summary PDF
+export const generateAccountantSummaryPDF = (params = {}) =>
+  axios
+    .post("/api/accountant/summary/pdf", params, { responseType: "blob" })
+    .then((r) => r.data)
+    .catch((err) => {
+      console.error("Error generating accountant summary PDF:", err);
+      throw err;
+    });
+
+// Generate Accountant Summary Excel (CSV/ZIP)
+export const generateAccountantSummaryExcel = (params = {}) =>
+  axios
+    .post("/api/accountant/summary/csv", params, { responseType: "blob" })
+    .then((r) => r.data)
+    .catch((err) => {
+      console.error("Error generating accountant summary Excel:", err);
+      throw err;
+    });

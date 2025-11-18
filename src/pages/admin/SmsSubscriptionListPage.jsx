@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Gauge  } from "lucide-react";
 import AdminHeader from "../../components/layout/SuperAdminHeader";
 import AdminSidebar from "../../components/layout/SuperAdminSidebar";
 import AdminFooter from "../../components/layout/SuperAdminFooter";
@@ -75,16 +76,7 @@ const SmsSubscriptionListPage = () => {
           {/* Page Heading */}
           <div className="flex items-center gap-2 mb-6">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#a8626b"
-                strokeWidth="1.5"
-              >
-                <circle cx="12" cy="12" r="9" />
-              </svg>
+              <Gauge  size={18} strokeWidth={1.5} className="text-rose-700" />
             </span>
             <h1 className="text-xl font-semibold text-gray-800">
               SMS Subscription List
