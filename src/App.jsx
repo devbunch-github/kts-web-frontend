@@ -103,6 +103,8 @@ import BusinessHomePage from "./pages/public/BusinessHomePage.jsx";
 import CategoryServicesPage from "./pages/public/CategoryServicesPage.jsx";
 import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
 import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
+import PaymentMethodsPage from "./pages/public/PaymentMethodsPage";
+
 
 export default function App() {
   return (
@@ -114,6 +116,10 @@ export default function App() {
           <Route path="/business/categories/:id" element={<CategoryServicesPage />} />
           <Route path="/business/services/:serviceId/professionals" element={<ChooseProfessionalPage />}/>
           <Route path="/business/booking/:serviceId/:employeeId" element={<ChooseAppointmentPage />} />
+          <Route
+            path="/business/booking/:serviceId/:employeeId/payment/:appointmentId"
+            element={<PaymentMethodsPage />}
+          />
 
           {/* Public Routes */}
           <Route element={<MainLayout />}>

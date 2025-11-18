@@ -7,19 +7,20 @@ import { MapPin, Star, Calendar, Clock, CreditCard, Wallet } from "lucide-react"
 import {
   getAppointment,
   updateAppointment,
-} from "../../api/appointmentApi"; // <-- your appointment module
+} from "../../api/appointment";
 import {
   createStripeIntent,
   createPayPalOrder,
 } from "../../api/publicApi"; // <-- Stripe + PayPal APIs
 
 export default function PaymentMethodsPage() {
-  const { appointmentId } = useParams();
   const navigate = useNavigate();
 
   const [appointment, setAppointment] = useState(null);
   const [method, setMethod] = useState("card"); // card | paypal | venue
   const [loading, setLoading] = useState(true);
+  const { serviceId, employeeId, appointmentId } = useParams();
+
 
   // ================================
   // 🟧 LOAD APPOINTMENT DETAILS

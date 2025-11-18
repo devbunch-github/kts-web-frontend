@@ -1,4 +1,5 @@
 // src/pages/public/ChooseAppointmentPage.jsx
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Star, CalendarDays, Clock } from "lucide-react";
@@ -8,12 +9,14 @@ import { getBusinessSetting } from "../../api/settings";
 import { listPublicGiftCards } from "../../api/giftCards";
 import { listEmployees } from "../../api/employee";
 import { listServices } from "../../api/service";
+
 import AuthModal from "../../components/public/AuthModal";
 import { useAuth } from "../../context/AuthContext";
+import { createAppointment } from "../../api/appointment";
 
 const ACCOUNT_ID = 725;
 
-// Temporary mock time slots (replace with API later)
+// Temporary mock (will replace with API later)
 const generateTimeSlots = () => [
   { time: "09:00 AM", available: true },
   { time: "09:30 AM", available: false },
@@ -30,7 +33,8 @@ const generateTimeSlots = () => [
 export default function ChooseAppointmentPage() {
   const { serviceId, employeeId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+
+  const { user, isAuthenticated } = useAuth();
 
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
@@ -54,7 +58,7 @@ export default function ChooseAppointmentPage() {
 
   const timeSlots = generateTimeSlots();
 
-  // ---------- HEADER (logo / cover / giftcards) ----------
+  // ---------- HEADER ----------
   useEffect(() => {
     const loadHeader = async () => {
       try {
@@ -110,24 +114,7 @@ export default function ChooseAppointmentPage() {
     loadMain();
   }, [serviceId, employeeId]);
 
-  // ---------- DERIVED ----------
-  const finalLogo =
-    businessSettings?.logo_url ||
-    beautician?.logo_url ||
-    "/images/dummy/dummy.png";
-
-  const finalCover =
-    businessSettings?.cover_url ||
-    beautician?.cover_url ||
-    "/images/dummy/dummy.png";
-
-  const businessName =
-    beautician?.business_name || beautician?.name || "Octane";
-
-  const businessLocation =
-    [beautician?.city, beautician?.country].filter(Boolean).join(", ") ||
-    "Your Location";
-
+  // ---------- UI HELPER ----------
   const getDaysInMonth = () => {
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
@@ -146,9 +133,8 @@ export default function ChooseAppointmentPage() {
     );
   };
 
-  // ---------- CONTINUE HANDLER ----------
-  const handleContinue = () => {
-    // basic guard — must pick date & time
+  // ---------- CONTINUE ----------
+  const handleContinue = async () => {
     if (!selectedDate || !selectedTime) {
       alert("Please select a date and time first.");
       return;
@@ -159,29 +145,86 @@ export default function ChooseAppointmentPage() {
       return;
     }
 
-    // ✅ user is logged in → go to payment step within same business flow
-    navigate(
-      `/business/booking/${serviceId}/${employeeId}/payment`,
-      {
-        state: {
-          selectedDate: selectedDate.toISOString(),
-          selectedTime,
-        },
-      }
-    );
+    try {
+      // -----------------------------
+      // BUILD ACTUAL START + END TIME
+      // -----------------------------
+      const start = new Date(selectedDate);
+
+      // parse selected time ("09:00 AM")
+      const [time, modifier] = selectedTime.split(" ");
+      let [hours, minutes] = time.split(":");
+      hours = parseInt(hours);
+      minutes = parseInt(minutes);
+
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+
+      start.setHours(hours);
+      start.setMinutes(minutes);
+
+      const end = new Date(start);
+      end.setMinutes(
+        end.getMinutes() + Number(service.DefaultAppointmentDuration || 30)
+      );
+
+      // -----------------------------
+      // CREATE APPOINTMENT
+      // -----------------------------
+      const payload = {
+        ServiceId: Number(serviceId),
+        EmployeeId: employeeId === "any" ? null : Number(employeeId),
+        CustomerId: user.id,
+        AccountId: ACCOUNT_ID,
+
+        StartDateTime: start.toISOString(),
+        EndDateTime: end.toISOString(),
+
+        Status: "Pending",
+        Cost: service.TotalPrice,
+        Deposit: service.Deposit || 0,
+        FinalAmount: service.TotalPrice,
+        Tip: 0,
+        RefundAmount: 0,
+        Discount: 0,
+        DateCreated: new Date().toISOString(),
+      };
+
+      const appt = await createAppointment(payload);
+
+      navigate(
+        `/business/booking/${serviceId}/${employeeId}/payment/${appt.Id}`,
+        {
+          state: {
+            selectedDate: start.toISOString(),
+            selectedTime,
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Appointment create error:", err);
+      alert("Failed to create appointment");
+    }
   };
 
+
+  // ---------- UI ----------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
       {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
+          {/* Logo */}
           <div className="h-10 max-w-[180px] flex items-center">
             {loadingHeader ? (
               <div className="w-32 h-full bg-gray-200 animate-pulse rounded" />
             ) : (
               <img
-                src={finalLogo}
+                src={
+                  businessSettings?.logo_url ||
+                  beautician?.logo_url ||
+                  "/images/dummy/dummy.png"
+                }
                 alt="Logo"
                 className="h-full w-full object-contain"
               />
@@ -199,7 +242,11 @@ export default function ChooseAppointmentPage() {
       {/* COVER */}
       <div className="w-full h-[430px] mt-[80px] overflow-hidden relative">
         <img
-          src={finalCover}
+          src={
+            businessSettings?.cover_url ||
+            beautician?.cover_url ||
+            "/images/dummy/dummy.png"
+          }
           className="w-full h-full object-cover brightness-[0.75]"
           alt="Cover"
         />
@@ -213,19 +260,16 @@ export default function ChooseAppointmentPage() {
       {/* BREADCRUMB */}
       <div className="w-full bg-[#E86C28] h-11 flex items-center">
         <div className="max-w-7xl mx-auto px-6 text-sm text-white">
-          <span className="opacity-80">Services</span>
-          <span className="mx-1">›</span>
-          <span className="opacity-80">Professional</span>
-          <span className="mx-1">›</span>
-          <span className="font-medium">Appointment</span>
+          Services › Professional › <span className="font-medium">Appointment</span>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-12 gap-12">
+      {/* MAIN */}
+      <div className="max-w-7xl mx-auto grid grid-cols-12 gap-12 px-6 py-14">
+        
         {/* LEFT PANEL: Calendar + time slots */}
         <div className="col-span-12 lg:col-span-8">
-          {/* Calendar Card */}
+          {/* Calendar */}
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm mb-10">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-[17px] font-semibold text-[#222]">
@@ -251,7 +295,7 @@ export default function ChooseAppointmentPage() {
               </div>
             </div>
 
-            {/* Weekdays */}
+            {/* Week days */}
             <div className="grid grid-cols-7 text-center text-sm text-gray-500 mb-4">
               {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
                 <div key={day}>{day}</div>
@@ -322,9 +366,10 @@ export default function ChooseAppointmentPage() {
           </div>
         </div>
 
-        {/* RIGHT PANEL: Summary */}
+        {/* RIGHT PANEL */}
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+
             {/* Service Info */}
             <div className="flex gap-4 mb-4">
               <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
@@ -336,20 +381,20 @@ export default function ChooseAppointmentPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm text-[#222]">
-                  {service?.Name}
-                </h3>
-                <p className="flex items-center text-xs text-gray-500 gap-1 mt-1">
+                <h3 className="font-semibold text-sm">{service?.Name}</h3>
+                <p className="flex items-center text-xs text-gray-500 gap-1">
                   <MapPin size={12} className="text-[#E86C28]" />
-                  {businessLocation}
+                  {[beautician?.city, beautician?.country]
+                    .filter(Boolean)
+                    .join(", ")}
                 </p>
 
-                <p className="text-xs flex items-center gap-1 text-gray-600 mt-1">
+                <p className="text-xs flex items-center gap-1 text-gray-600">
                   <Star size={12} className="text-yellow-500" /> 5.0 (1)
                 </p>
 
                 {service?.Deposit && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400">
                     Min Deposit{" "}
                     {service.DepositType === 0
                       ? `${service.Deposit}%`
@@ -374,9 +419,11 @@ export default function ChooseAppointmentPage() {
               </div>
             </div>
 
-            {/* Business & Professional */}
+            {/* Business Info */}
             <div className="mt-4 text-sm">
-              <p className="text-gray-800 font-medium">{businessName}</p>
+              <p className="text-gray-800 font-medium">
+                {beautician?.business_name || beautician?.name || "Octane"}
+              </p>
               <p className="text-gray-500">
                 {service?.DefaultAppointmentDuration} mins{" "}
                 {employee ? `with ${employee.name}` : "with any professional"}
@@ -391,39 +438,22 @@ export default function ChooseAppointmentPage() {
               </span>
             </div>
 
-            {/* Discount Options */}
-            <div className="mt-6 flex flex-col gap-2 text-sm">
-              <label className="flex gap-2 items-center">
-                <input type="radio" name="discount" />
-                Gift Card
-              </label>
-              <label className="flex gap-2 items-center">
-                <input type="radio" name="discount" />
-                Promo Code
-              </label>
-              <label className="flex gap-2 items-center">
-                <input type="radio" name="discount" />
-                Loyalty Points
-              </label>
-            </div>
-
             {/* Continue */}
             <button
               onClick={handleContinue}
-              className="mt-6 w-full py-2.5 rounded-full bg-[#E86C28] text-white text-sm font-semibold hover:bg-[#cf5f20] transition"
+              className="mt-6 w-full py-2.5 rounded-full bg-[#E86C28] text-white"
             >
               Continue
             </button>
 
-            {/* Auth Modal */}
+            {/* AUTH POPUP */}
             <AuthModal
               open={showAuth}
               onClose={() => setShowAuth(false)}
               mode="login"
               onSuccess={() => {
-                // user is now logged in via context
                 setShowAuth(false);
-                // let the user click Continue again (or you can auto-continue if you want)
+                handleContinue(); // NOT navigate — create appointment properly
               }}
             />
           </div>
