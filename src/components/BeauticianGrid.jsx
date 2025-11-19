@@ -11,7 +11,9 @@ export default function BeauticianGrid({ items = [] }) {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((b) => <BeauticianCard key={b.id} item={b} />)}
+      {items.map((b) => (
+        <BeauticianCard key={b.id} item={b} />
+      ))}
     </div>
   );
 }

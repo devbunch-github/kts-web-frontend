@@ -1,6 +1,6 @@
 // src/pages/public/ChooseProfessionalPage.jsx
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Star } from "lucide-react";
 
 import { listBeauticians } from "../../api/beautician";
@@ -8,13 +8,10 @@ import { getBusinessSetting } from "../../api/settings";
 import { listPublicGiftCards } from "../../api/giftCards";
 import { listEmployees } from "../../api/employee";
 import { listServices } from "../../api/service";
-import { useNavigate } from "react-router-dom";
-
-
-const ACCOUNT_ID = 725;
 
 export default function ChooseProfessionalPage() {
-  const { serviceId } = useParams();
+  const { serviceId, subdomain } = useParams();
+  const navigate = useNavigate();
 
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
@@ -27,20 +24,39 @@ export default function ChooseProfessionalPage() {
   const [loadingMain, setLoadingMain] = useState(true);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("any");
-  const navigate = useNavigate();
 
+  const [ACCOUNT_ID, setACCOUNT_ID] = useState(null);
+
+  // ---------------- LOAD BUSINESS BY SUBDOMAIN ----------------
+  useEffect(() => {
+    const loadBusiness = async () => {
+      try {
+        const res = await listBeauticians({ subdomain });
+        const b = res.data?.[0];
+
+        if (b) {
+          setBeautician(b);
+          setACCOUNT_ID(b.account_id);
+        }
+      } catch (err) {
+        console.error("Beautician fetch failed:", err);
+      }
+    };
+
+    loadBusiness();
+  }, [subdomain]);
 
   // ---------------- HEADER / COVER DATA ----------------
   useEffect(() => {
+    if (!ACCOUNT_ID) return;
+
     const loadHeader = async () => {
       try {
-        const [beautRes, settingsRes, giftRes] = await Promise.all([
-          listBeauticians({ account_id: ACCOUNT_ID }),
-          getBusinessSetting("site"),
+        const [settingsRes, giftRes] = await Promise.all([
+          getBusinessSetting("site", ACCOUNT_ID),
           listPublicGiftCards(ACCOUNT_ID),
         ]);
 
-        setBeautician(beautRes.data?.[0] || null);
         setBusinessSettings(settingsRes || {});
         setGiftCards(giftRes || []);
       } catch (e) {
@@ -51,7 +67,7 @@ export default function ChooseProfessionalPage() {
     };
 
     loadHeader();
-  }, []);
+  }, [ACCOUNT_ID]);
 
   const finalLogo =
     businessSettings?.logo_url ||
@@ -63,20 +79,19 @@ export default function ChooseProfessionalPage() {
     beautician?.cover_url ||
     "/images/dummy/dummy.png";
 
-  const businessName =
-    beautician?.business_name || beautician?.name || "Octane";
-
   const businessLocation =
     [beautician?.city, beautician?.country].filter(Boolean).join(", ") ||
     "Your Location";
 
   // ---------------- EMPLOYEES + SERVICE ----------------
   useEffect(() => {
+    if (!ACCOUNT_ID) return;
+
     const loadData = async () => {
       setLoadingMain(true);
       try {
         const [empRes, srvRes] = await Promise.all([
-          listEmployees(),
+          listEmployees({ account_id: ACCOUNT_ID }),
           listServices({ account_id: ACCOUNT_ID }),
         ]);
 
@@ -88,16 +103,12 @@ export default function ChooseProfessionalPage() {
         );
         setService(currentService || null);
 
-        // filter employees that can perform this service
-        const filteredEmployees = allEmployees.filter((emp) => {
-            const validServices = emp.services_full || []; // USE CORRECT FIELD
-
-            return validServices.some(
-                (srv) => String(srv.Id) === String(serviceId)
-            );
-        });
-
-
+        // Filter employees by service ID (services_full from backend)
+        const filteredEmployees = allEmployees.filter((emp) =>
+          (emp.services_full || []).some(
+            (srv) => String(srv.Id) === String(serviceId)
+          )
+        );
 
         setEmployees(filteredEmployees);
       } catch (e) {
@@ -108,7 +119,7 @@ export default function ChooseProfessionalPage() {
     };
 
     loadData();
-  }, [serviceId]);
+  }, [serviceId, ACCOUNT_ID]);
 
   const selectedEmployee =
     selectedEmployeeId === "any"
@@ -128,7 +139,7 @@ export default function ChooseProfessionalPage() {
     <div className="animate-pulse bg-white rounded-2xl border border-gray-200 p-6 h-[420px]" />
   );
 
-  // ---------------- SMALL UI HELPERS ----------------
+  // ---------------- UI COMPONENTS ----------------
   const ProfessionalCard = ({ employee, isSelected, onClick }) => (
     <button
       onClick={onClick}
@@ -148,9 +159,7 @@ export default function ChooseProfessionalPage() {
           />
         </div>
       )}
-      <div className="text-sm font-semibold text-[#222]">
-        {employee.name}
-      </div>
+      <div className="text-sm font-semibold text-[#222]">{employee.name}</div>
       {employee.title && (
         <div className="text-xs text-gray-500 mt-1">{employee.title}</div>
       )}
@@ -181,11 +190,7 @@ export default function ChooseProfessionalPage() {
             {loadingHeader ? (
               <div className="w-32 h-full bg-gray-200 animate-pulse rounded" />
             ) : (
-              <img
-                src={finalLogo}
-                alt="Logo"
-                className="h-full w-full object-contain"
-              />
+              <img src={finalLogo} className="h-full w-full object-contain" />
             )}
           </div>
 
@@ -197,7 +202,7 @@ export default function ChooseProfessionalPage() {
         </div>
       </header>
 
-      {/* COVER + TITLE */}
+      {/* COVER */}
       {loadingHeader ? (
         <SkeletonHeader />
       ) : (
@@ -205,7 +210,6 @@ export default function ChooseProfessionalPage() {
           <img
             src={finalCover}
             className="w-full h-full object-cover brightness-[0.75]"
-            alt="Cover"
           />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <h1 className="text-white text-4xl font-semibold text-center drop-shadow-lg">
@@ -215,7 +219,7 @@ export default function ChooseProfessionalPage() {
         </div>
       )}
 
-      {/* ORANGE BREADCRUMB BAR */}
+      {/* BREADCRUMB */}
       <div className="w-full bg-[#E86C28] h-11 flex items-center">
         <div className="max-w-7xl mx-auto px-6 text-sm text-white">
           <span className="opacity-80">Services</span>
@@ -226,7 +230,7 @@ export default function ChooseProfessionalPage() {
 
       {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-12 gap-10">
-        {/* LEFT: PROFESSIONAL GRID */}
+        {/* LEFT SIDE */}
         <div className="col-span-12 lg:col-span-8">
           {loadingMain ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -236,13 +240,11 @@ export default function ChooseProfessionalPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Any Professional */}
               <AnyProfessionalCard
                 isSelected={selectedEmployeeId === "any"}
                 onClick={() => setSelectedEmployeeId("any")}
               />
 
-              {/* Employees */}
               {employees.map((emp) => (
                 <ProfessionalCard
                   key={emp.id}
@@ -255,19 +257,16 @@ export default function ChooseProfessionalPage() {
           )}
         </div>
 
-        {/* RIGHT: SUMMARY CARD */}
+        {/* RIGHT SUMMARY CARD */}
         <div className="col-span-12 lg:col-span-4">
           {loadingMain || !service ? (
             <SkeletonSummary />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col h-full max-h-[480px]">
-              {/* Service section */}
               <div className="flex gap-4 mb-4">
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                   <img
-                    src={
-                      service.ImagePath || "/images/dummy/dummy.png"
-                    }
+                    src={service.ImagePath || "/images/dummy/dummy.png"}
                     alt={service.Name}
                     className="w-full h-full object-cover"
                   />
@@ -283,32 +282,25 @@ export default function ChooseProfessionalPage() {
                     <span>{businessLocation}</span>
                   </div>
 
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Star className="w-3 h-3 mr-1 text-[#E8A11C]" />
-                    <span className="mr-1">5.0</span>
-                    <span className="opacity-70">(1)</span>
+                  <div className="text-xs text-gray-500">
                     {service.Deposit != null && (
-                      <span className="ml-3 text-[11px] text-gray-500">
+                      <>
                         Min Deposit{" "}
                         {service.DepositType === 0
-                          ? `${Number(service.Deposit)}%`
+                          ? `${service.Deposit}%`
                           : `£${Number(service.Deposit).toFixed(2)}`}
-                      </span>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-2">
-                <div className="text-sm font-semibold text-[#222]">
-                  {businessName}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {service.DefaultAppointmentDuration || 0} mins{" "}
-                  {selectedEmployee
-                    ? `with ${selectedEmployee.name}`
-                    : "with any professional"}
-                </div>
+              <div className="border-t border-gray-200 pt-4 mt-2 text-xs text-gray-600">
+                {service.DefaultAppointmentDuration}{" "}
+                {service.DurationUnit === "hours" ? "hours" : "mins"}{" "}
+                {selectedEmployee
+                  ? `with ${selectedEmployee.name}`
+                  : "with any professional"}
               </div>
 
               <div className="border-t border-gray-200 mt-6 pt-4 flex justify-between text-sm">
@@ -318,19 +310,17 @@ export default function ChooseProfessionalPage() {
                 </span>
               </div>
 
-                <button
-                    className="
-                        mt-6 w-full py-2.5 rounded-full bg-[#E86C28]
-                        text-white font-medium hover:bg-[#cf5f20] transition
-                        text-sm
-                    "
-                    onClick={() =>
-                        navigate(`/business/booking/${serviceId}/${selectedEmployeeId}`)
-                    }
-                    >
-                    Continue
-                </button>
-
+              <button
+                className="mt-6 w-full py-2.5 rounded-full bg-[#E86C28]
+                           text-white font-medium hover:bg-[#cf5f20] transition"
+                onClick={() =>
+                  navigate(
+                    `/${subdomain}/booking/${serviceId}/${selectedEmployeeId}`
+                  )
+                }
+              >
+                Continue
+              </button>
             </div>
           )}
         </div>

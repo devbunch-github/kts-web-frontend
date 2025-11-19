@@ -30,3 +30,7 @@ export const bulkUpdateCustomerReviewStatus = (ids, status) =>
 // Delete review
 export const deleteCustomerReview = (id) =>
   axios.delete(`/api/admin/customer/reviews/${id}`).then((r) => r.data);
+
+// PUBLIC create
+export const createPublicCustomer = (payload) =>
+  axios.post("/api/customers", payload).then((r) => r.data);

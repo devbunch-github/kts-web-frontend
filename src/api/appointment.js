@@ -23,9 +23,12 @@ export const listAppointments = async (params = {}) => {
 // ========================
 // 🟢 GET SINGLE APPOINTMENT
 // ========================
-export const getAppointment = async (id) => {
+export const getAppointment = async (id, account_id = null) => {
   try {
-    const res = await http.get(`/api/appointments/${id}`);
+    const res = await http.get(`/api/appointments/${id}`, {
+      params: { account_id }
+    });
+
     return res.data?.data || res.data;
   } catch (err) {
     console.error("getAppointment error:", err);
@@ -33,18 +36,24 @@ export const getAppointment = async (id) => {
   }
 };
 
+
 // ========================
 // 🟢 CREATE APPOINTMENT
 // ========================
 export const createAppointment = async (payload) => {
   try {
-    const res = await http.post("/api/appointments", payload);
+    const res = await http.post(
+      `/api/appointments?account_id=${payload.AccountId}`,
+      payload
+    );
+
     return res.data?.data || res.data;
   } catch (err) {
-    console.error("createAppointment error:", err);
+    console.error("❌ createAppointment error:", err);
     throw err;
   }
 };
+
 
 // ========================
 // 🟢 UPDATE APPOINTMENT

@@ -1,18 +1,19 @@
 // src/pages/public/CategoryServicesPage.jsx
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { listServices, listServiceCategories } from "../../api/service";
 import { getBusinessSetting } from "../../api/settings";
 import { listBeauticians } from "../../api/beautician";
 import { listPublicGiftCards } from "../../api/giftCards";
-import { useNavigate } from "react-router-dom";
 
 export default function CategoryServicesPage() {
-  const { id } = useParams(); // category ID from URL
-  const ACCOUNT_ID = 725;
+  const { subdomain, id } = useParams(); // ⭐ dynamic subdomain + category ID
+  const navigate = useNavigate();
 
   const [beautician, setBeautician] = useState(null);
+  const [ACCOUNT_ID, setAccountId] = useState(null);
+
   const [businessSettings, setBusinessSettings] = useState({});
   const [loadingBeautician, setLoadingBeautician] = useState(true);
   const [loadingSettings, setLoadingSettings] = useState(true);
@@ -25,38 +26,75 @@ export default function CategoryServicesPage() {
   const [selectedCategory, setSelectedCategory] = useState(id);
   const [selectedServices, setSelectedServices] = useState([]);
 
-  const navigate = useNavigate();
-
   // ------------------------------------------------------
-  // Load beautician info (logo, cover) + settings
+  // 1. LOAD BEAUTICIAN BY SUBDOMAIN (get account_id here)
   // ------------------------------------------------------
   useEffect(() => {
     loadBeautician();
-    loadBusinessSettings();
-    loadGiftCards();
-  }, []);
+  }, [subdomain]);
 
   const loadBeautician = async () => {
     try {
-      const res = await listBeauticians({ account_id: ACCOUNT_ID });
-      setBeautician(res.data?.[0] || null);
-    } catch {}
-    finally { setLoadingBeautician(false); }
+      const res = await listBeauticians({ subdomain });
+      const b = res?.data?.[0];
+
+      if (b) {
+        setBeautician(b);
+        setAccountId(b.account_id); // ⭐ DYNAMIC ACCOUNT ID
+      }
+    } finally {
+      setLoadingBeautician(false);
+    }
   };
 
+  // ------------------------------------------------------
+  // 2. Once account ID is available → load all business data
+  // ------------------------------------------------------
+  useEffect(() => {
+    if (ACCOUNT_ID) {
+      loadBusinessSettings();
+      loadGiftCards();
+      loadAll();
+    }
+  }, [ACCOUNT_ID]);
+
+  // ------------------------------------------------------
+  // LOAD BUSINESS SETTINGS
+  // ------------------------------------------------------
   const loadBusinessSettings = async () => {
     try {
-      const settings = await getBusinessSetting("site");
+      const settings = await getBusinessSetting("site", ACCOUNT_ID); // ⭐ pass account ID
       setBusinessSettings(settings);
-    } catch {}
-    finally { setLoadingSettings(false); }
+    } catch {
+    } finally {
+      setLoadingSettings(false);
+    }
   };
 
+  // ------------------------------------------------------
+  // LOAD GIFT CARDS
+  // ------------------------------------------------------
   const loadGiftCards = async () => {
     try {
       const list = await listPublicGiftCards(ACCOUNT_ID);
       setGiftCards(list || []);
     } catch {}
+  };
+
+  // ------------------------------------------------------
+  // LOAD CATEGORIES + SERVICES
+  // ------------------------------------------------------
+  const loadAll = async () => {
+    try {
+      const catRes = await listServiceCategories({ account_id: ACCOUNT_ID }); // ⭐
+      setCategories(catRes?.data || []);
+
+      const srvRes = await listServices({ account_id: ACCOUNT_ID }); // ⭐
+      setServices(srvRes?.data || []);
+    } catch {
+    } finally {
+      setLoadingServices(false);
+    }
   };
 
   const finalLogo =
@@ -70,25 +108,7 @@ export default function CategoryServicesPage() {
     "/images/dummy/dummy.png";
 
   // ------------------------------------------------------
-  // Load categories + services
-  // ------------------------------------------------------
-  useEffect(() => {
-    loadAll();
-  }, []);
-
-  const loadAll = async () => {
-    try {
-      const catRes = await listServiceCategories();
-      setCategories(catRes?.data || []);
-
-      const srvRes = await listServices({ account_id: ACCOUNT_ID });
-      setServices(srvRes?.data || []);
-    } catch {}
-    finally { setLoadingServices(false); }
-  };
-
-  // ------------------------------------------------------
-  // Filtering Logic
+  // FILTERING
   // ------------------------------------------------------
   const filteredServices = services.filter((srv) => {
     const matchCategory = String(srv.CategoryId) === String(selectedCategory);
@@ -106,7 +126,7 @@ export default function CategoryServicesPage() {
   );
 
   // ------------------------------------------------------
-  // Skeletons
+  // Skeleton Loaders
   // ------------------------------------------------------
   const SkeletonCard = () => (
     <div className="animate-pulse bg-white rounded-2xl shadow-md p-4">
@@ -122,7 +142,7 @@ export default function CategoryServicesPage() {
   );
 
   // ------------------------------------------------------
-  // Accordion Component (same as homepage)
+  // Accordion
   // ------------------------------------------------------
   const Accordion = ({ title, children }) => {
     const [open, setOpen] = useState(true);
@@ -141,19 +161,19 @@ export default function CategoryServicesPage() {
   };
 
   // ------------------------------------------------------
-  // Render
+  // RENDER
   // ------------------------------------------------------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
 
-      {/* HEADER (same as homepage) */}
+      {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
           <div className="h-10 max-w-[180px] flex items-center">
             {loadingBeautician || loadingSettings ? (
               <div className="w-32 h-full bg-gray-200 animate-pulse rounded" />
             ) : (
-              <img src={finalLogo} className="h-full w-full object-contain" />
+              <img src={finalLogo} className="h-full object-contain" />
             )}
           </div>
 
@@ -165,37 +185,26 @@ export default function CategoryServicesPage() {
         </div>
       </header>
 
-      {/* COVER IMAGE WITH CATEGORY NAME */}
+      {/* COVER WITH CATEGORY NAME */}
       {loadingBeautician || loadingSettings ? (
         <SkeletonHeader />
       ) : (
         <div className="w-full h-[430px] mt-[80px] overflow-hidden relative">
-          <img
-            src={finalCover}
-            className="w-full h-full object-cover brightness-[0.75]"
-          />
+          <img src={finalCover} className="w-full h-full object-cover brightness-[0.75]" />
 
-          {/* ✔ Category Name on Cover ONLY */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <h1 className="text-white text-4xl font-semibold text-center drop-shadow-lg">
-              {categories.find((c) => String(c.id) === String(selectedCategory))?.Name || ""}
+              {categories.find((c) => String(c.id) === String(selectedCategory))?.Name}
             </h1>
           </div>
         </div>
       )}
 
-      {/* MAIN PAGE LAYOUT */}
+      {/* LAYOUT */}
       <div className="max-w-7xl mx-auto py-16 px-6 grid grid-cols-12 gap-10">
 
-        {/* -------------------------------- SIDEBAR -------------------------------- */}
-        <aside
-          className="
-            col-span-12 lg:col-span-3
-            bg-white shadow-md rounded-xl p-6
-            sticky top-[140px]
-            self-start
-          "
-        >
+        {/* ------------------------------------------------- SIDEBAR ------------------------------------------------- */}
+        <aside className="col-span-12 lg:col-span-3 bg-white shadow-md rounded-xl p-6 sticky top-[140px] self-start">
           <h3 className="font-semibold text-lg mb-4">
             Filter results ({filteredServices.length})
           </h3>
@@ -203,10 +212,10 @@ export default function CategoryServicesPage() {
           {/* Categories */}
           <Accordion title="Categories">
             {loadingServices ? (
-              <div className="space-y-2">
+              <>
                 <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-              </div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
+              </>
             ) : (
               categories.map((cat) => (
                 <div
@@ -219,6 +228,7 @@ export default function CategoryServicesPage() {
                   onClick={() => {
                     setSelectedCategory(cat.id);
                     setSelectedServices([]);
+                    navigate(`/${subdomain}/categories/${cat.id}`);
                   }}
                 >
                   {cat.Name}
@@ -230,19 +240,16 @@ export default function CategoryServicesPage() {
           {/* Services */}
           <Accordion title="Services">
             {loadingServices ? (
-              <div className="space-y-2">
+              <>
                 <div className="h-3 bg-gray-200 rounded w-full animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-              </div>
+                <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse mt-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
+              </>
             ) : sidebarServices.length === 0 ? (
               <p className="text-xs text-gray-500">No services found.</p>
             ) : (
               sidebarServices.map((srv) => (
-                <label
-                  key={srv.Id}
-                  className="flex items-center gap-2 mb-2 text-sm text-[#444]"
-                >
+                <label key={srv.Id} className="flex items-center gap-2 mb-2 text-sm text-[#444]">
                   <input
                     type="checkbox"
                     checked={selectedServices.includes(srv.Name)}
@@ -267,42 +274,34 @@ export default function CategoryServicesPage() {
             {giftCards.length === 0 ? (
               <p className="text-sm text-gray-500">No gift cards available</p>
             ) : (
-              <div className="space-y-4">
-                {giftCards.map((card) => (
-                  <div
-                    key={card.id}
-                    className="flex items-center gap-3 bg-[#FAFAFA] border rounded-lg p-3 shadow-sm"
-                  >
-                    <img
-                      src={card.image_url || "/images/dummy/dummy.png"}
-                      className="w-16 h-16 object-cover rounded-md"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-sm">{card.title}</h4>
-                      <p className="text-xs text-gray-600">Code: {card.code}</p>
-                      <p className="text-xs text-gray-600">
-                        £{card.discount_amount} ({card.discount_type})
-                      </p>
-                      <span
-                        className={`text-xs mt-1 inline-block px-2 py-1 rounded ${
-                          card.is_active
-                            ? "bg-green-100 text-green-600"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {card.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
+              giftCards.map((card) => (
+                <div key={card.id} className="flex items-center gap-3 bg-[#FAFAFA] border rounded-lg p-3 shadow-sm mb-3">
+                  <img
+                    src={card.image_url || "/images/dummy/dummy.png"}
+                    className="w-16 h-16 object-cover rounded-md"
+                  />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">{card.title}</h4>
+                    <p className="text-xs text-gray-600">Code: {card.code}</p>
+                    <p className="text-xs text-gray-600">
+                      £{card.discount_amount} ({card.discount_type})
+                    </p>
+                    <span
+                      className={`text-xs mt-1 inline-block px-2 py-1 rounded ${
+                        card.is_active ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {card.is_active ? "Active" : "Inactive"}
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </Accordion>
         </aside>
 
-        {/* -------------------------------- SERVICES GRID -------------------------------- */}
+        {/* ------------------------------------------------- SERVICES GRID ------------------------------------------------- */}
         <div className="col-span-12 lg:col-span-9">
-
           {loadingServices ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
@@ -316,18 +315,16 @@ export default function CategoryServicesPage() {
               {filteredServices.map((srv) => (
                 <div
                   key={srv.Id}
-                  className="
-                    bg-white rounded-2xl
-                    shadow-[0_4px_12px_rgba(0,0,0,0.08)]
-                    hover:shadow-[0_6px_18px_rgba(0,0,0,0.12)]
-                    transition-all p-6 flex flex-col
-                  "
+                  className="bg-white rounded-2xl shadow p-6 flex flex-col hover:shadow-lg transition"
                 >
                   <h3 className="font-semibold text-lg mb-1">{srv.Name}</h3>
 
                   <p className="text-sm text-[#E86C28] mb-2">
-                    {srv.DefaultAppointmentDuration || 0} mins
+                    {srv.DefaultAppointmentDuration}
+                    {" "}
+                    {srv.DurationUnit === "hours" ? "hr" : "mins"}
                   </p>
+
 
                   <p className="text-sm text-gray-600 mb-4 line-clamp-3">
                     {srv.Description || "No description available."}
@@ -348,12 +345,12 @@ export default function CategoryServicesPage() {
                     )}
 
                     <button
-                        className="mt-4 w-full py-2 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#cf5f20] transition"
-                        onClick={() =>
-                            navigate(`/business/services/${srv.Id}/professionals`)
-                        }
-                        >
-                        Book Now
+                      className="mt-4 w-full py-2 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#cf5f20] transition"
+                      onClick={() =>
+                        navigate(`/${subdomain}/services/${srv.Id}/professionals`)
+                      }
+                    >
+                      Book Now
                     </button>
                   </div>
                 </div>
@@ -367,7 +364,7 @@ export default function CategoryServicesPage() {
       {/* FOOTER */}
       <footer className="py-10 text-center text-gray-600 text-sm">
         © 2025 All Rights Reserved by{" "}
-        <span className="text-[#E86C28]">Octane</span>
+        <span className="text-[#E86C28]">{beautician?.name || "Business"}</span>
       </footer>
     </div>
   );

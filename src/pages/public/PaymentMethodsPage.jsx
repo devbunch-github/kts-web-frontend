@@ -2,47 +2,104 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Star, Calendar, Clock, CreditCard, Wallet } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  Calendar,
+  Clock,
+  CreditCard,
+  Wallet,
+} from "lucide-react";
 
-import {
-  getAppointment,
-  updateAppointment,
-} from "../../api/appointment";
-import {
-  createStripeIntent,
-  createPayPalOrder,
-} from "../../api/publicApi"; // <-- Stripe + PayPal APIs
+import { getAppointment, updateAppointment } from "../../api/appointment";
+import { createStripeCheckout, createPayPalOrder } from "../../api/publicApi";
+
+import { listBeauticians } from "../../api/beautician";
+import { getBusinessSetting } from "../../api/settings";
 
 export default function PaymentMethodsPage() {
   const navigate = useNavigate();
+  const { subdomain, appointmentId } = useParams();
 
   const [appointment, setAppointment] = useState(null);
-  const [method, setMethod] = useState("card"); // card | paypal | venue
+  const [beautician, setBeautician] = useState(null);
+  const [businessSettings, setBusinessSettings] = useState({});
+  const [method, setMethod] = useState("card");
   const [loading, setLoading] = useState(true);
-  const { serviceId, employeeId, appointmentId } = useParams();
+  const [accountId, setAccountId] = useState(null);
 
+  // ======================================
+  // 1. LOAD BEAUTICIAN + ACCOUNT
+  // ======================================
+  useEffect(() => {
+    const loadBeautician = async () => {
+      try {
+        const res = await listBeauticians({ subdomain });
+        const b = res.data?.[0];
 
-  // ================================
-  // 🟧 LOAD APPOINTMENT DETAILS
-  // ================================
+        if (b) {
+          setBeautician(b);
+          setAccountId(b.account_id);
+          window.__currentAccountId = b.account_id;
+        }
+      } catch (err) {
+        console.error("Beautician load error:", err);
+      }
+    };
+
+    loadBeautician();
+  }, [subdomain]);
+
+  // ======================================
+  // 2. LOAD BUSINESS SETTINGS
+  // ======================================
+  useEffect(() => {
+    if (!accountId) return;
+
+    const loadSettings = async () => {
+      try {
+        const settings = await getBusinessSetting("site", accountId);
+        setBusinessSettings(settings || {});
+      } catch (err) {
+        console.error("Business settings load error:", err);
+      }
+    };
+
+    loadSettings();
+  }, [accountId]);
+
+  // ======================================
+  // 3. LOAD APPOINTMENT
+  // ======================================
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getAppointment(appointmentId);
+        const accountId =
+          window.__currentAccountId ||
+          localStorage.getItem("public_account_id");
+
+        if (!accountId) {
+          console.error("❌ No account ID found for payment page");
+          return;
+        }
+
+        const data = await getAppointment(appointmentId, accountId);
         setAppointment(data);
+
       } catch (e) {
         console.error("Failed to load appointment:", e);
       } finally {
         setLoading(false);
       }
     };
+
     load();
   }, [appointmentId]);
 
   if (loading || !appointment) {
     return (
-      <div className="w-full h-screen flex items-center justify-center text-gray-500">
-        Loading payment details...
+      <div className="w-full h-screen flex justify-center items-center text-gray-500">
+        Loading payment data...
       </div>
     );
   }
@@ -50,55 +107,58 @@ export default function PaymentMethodsPage() {
   const service = appointment.service;
   const employee = appointment.employee;
 
-  // ================================
-  // 🟧 CONFIRM PAYMENT
-  // ================================
+  const finalLogo =
+    businessSettings?.logo_url ||
+    beautician?.logo_url ||
+    "/images/dummy/dummy.png";
+
+  const finalCover =
+    businessSettings?.cover_url ||
+    beautician?.cover_url ||
+    "/images/dummy/dummy.png";
+
+  // ======================================
+  // 4. CONFIRM PAYMENT
+  // ======================================
   const handleConfirm = async () => {
     try {
-      // ---------------------------------
-      // 🟧 1. STRIPE CHECKOUT
-      // ---------------------------------
+      const payload = {
+        appointment_id: appointment.Id,
+        account_id: appointment.AccountId,
+        amount: appointment.FinalAmount,
+      };
+
+      // -------- STRIPE --------
       if (method === "card") {
-        const res = await createStripeIntent({ appointment_id: appointmentId });
-        if (res?.url) {
-          window.location.href = res.url; // redirect to Hosted Stripe Checkout
-        }
+        const res = await createStripeCheckout(payload);
+        if (res?.url) window.location.href = res.url;
         return;
       }
 
-      // ---------------------------------
-      // 🟦 2. PAYPAL CHECKOUT
-      // ---------------------------------
+      // -------- PAYPAL --------
       if (method === "paypal") {
-        const res = await createPayPalOrder({ appointment_id: appointmentId });
-        if (res?.approval_url) {
-          window.location.href = res.approval_url; // redirect to PayPal
-        }
+        const res = await createPayPalOrder(payload);
+        if (res?.approval_url) window.location.href = res.approval_url;
         return;
       }
 
-      // ---------------------------------
-      // 🟩 3. PAY AT VENUE (INSTANT BOOKING)
-      // ---------------------------------
+      // -------- PAY AT VENUE --------
       if (method === "venue") {
         await updateAppointment(appointmentId, { Status: "Unpaid" });
-        navigate(`/booking/confirmation/${appointmentId}`);
+        navigate(`/${subdomain}/booking/confirmation/${appointmentId}`);
       }
     } catch (err) {
-      console.error("Payment Error:", err);
-      alert("Something went wrong. Please try again.");
+      console.error("Payment error:", err);
+      alert("Payment failed. Try again.");
     }
   };
 
-  // ================================
-  // 🟧 PAYMENT OPTION COMPONENT
-  // ================================
   const PaymentOption = ({ value, label, icon }) => (
     <button
       onClick={() => setMethod(value)}
       className={`flex items-center justify-between w-full px-5 py-4 rounded-xl border mb-3 transition ${
         method === value
-          ? "border-[#E86C28] bg-[#fff7f2] shadow-sm"
+          ? "border-[#E86C28] bg-[#fff7f2]"
           : "border-gray-200 hover:border-[#E86C28]/60"
       }`}
     >
@@ -109,7 +169,7 @@ export default function PaymentMethodsPage() {
           onChange={() => setMethod(value)}
           className="accent-[#E86C28]"
         />
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium">{label}</span>
       </div>
       <div className="text-gray-500">{icon}</div>
     </button>
@@ -120,24 +180,14 @@ export default function PaymentMethodsPage() {
       {/* Header */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
-          <img
-            src="/images/logo.png"
-            alt="Logo"
-            className="h-10 object-contain"
-          />
-
-          <div className="flex gap-6 text-sm text-[#E86C28] font-medium">
-            <span>📞 Phone</span>
-            <span>✉️ Email</span>
-            <span>📸 Instagram</span>
-          </div>
+          <img src={finalLogo} className="h-10 object-contain" />
         </div>
       </header>
 
       {/* Cover */}
       <div className="w-full h-[350px] mt-[80px] overflow-hidden relative">
         <img
-          src="/images/dummy/cover.png"
+          src={finalCover}
           className="w-full h-full object-cover brightness-[0.65]"
           alt="Cover"
         />
@@ -146,114 +196,76 @@ export default function PaymentMethodsPage() {
         </h1>
       </div>
 
-      {/* Breadcrumb bar */}
-      <div className="w-full bg-[#E86C28] h-11 flex items-center">
-        <div className="max-w-7xl mx-auto px-6 text-sm text-white">
-          <span className="opacity-80">Services</span> ›
-          <span className="opacity-80 mx-1">Professional</span> ›
-          <span className="opacity-80 mx-1">Appointment</span> ›
-          <span className="font-medium">Payment</span>
-        </div>
-      </div>
-
-      {/* Main Content */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10 px-6 py-14">
-        {/* LEFT: Payment Methods */}
+        {/* LEFT */}
         <div className="col-span-12 lg:col-span-7">
-          <div className="bg-white shadow-lg rounded-2xl p-8">
+          <div className="bg-white rounded-2xl p-8 shadow">
             <PaymentOption
               value="card"
-              label="Credit/Debit Card"
-              icon={<CreditCard className="w-6 h-6 text-[#E86C28]" />}
+              label="Credit / Debit Card"
+              icon={<CreditCard className="w-5 h-5 text-[#E86C28]" />}
             />
 
             <PaymentOption
               value="paypal"
-              label="Paypal"
+              label="PayPal"
               icon={<img src="/images/paypal.png" className="h-6" />}
             />
 
             <PaymentOption
               value="venue"
-              label="Pay at venue"
-              icon={<Wallet className="w-6 h-6 text-gray-500" />}
+              label="Pay at Venue"
+              icon={<Wallet className="w-5 h-5 text-gray-500" />}
             />
           </div>
         </div>
 
-        {/* RIGHT: Summary */}
+        {/* RIGHT */}
         <div className="col-span-12 lg:col-span-5">
-          <div className="bg-white rounded-2xl shadow-lg border p-6">
-            <div className="flex gap-4 mb-4">
+          <div className="bg-white rounded-2xl shadow p-6">
+            <div className="flex gap-4">
               <img
-                src={service?.ImagePath || "/images/dummy/dummy.png"}
+                src={service?.ImagePath}
                 className="w-20 h-20 rounded-lg object-cover"
               />
-
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">
-                  {service?.Name}
-                </h3>
-
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <MapPin className="w-3 h-3" />
-                  {appointment?.account?.City}, {appointment?.account?.Country}
-                </div>
-
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Star className="w-3 h-3 text-yellow-500" />
-                  5.0 (1)
-                </div>
+                <h3 className="font-semibold">{service?.Name}</h3>
+                <p className="text-xs text-gray-600 flex items-center gap-1">
+                  <MapPin size={12} />
+                  {beautician?.city}, {beautician?.country}
+                </p>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 py-4 text-sm">
-              <div className="flex items-center text-gray-700 gap-2">
-                <Calendar className="w-4 h-4" />
+            <div className="border-t mt-4 pt-3 text-sm">
+              <div className="flex items-center gap-2 text-gray-700">
+                <Calendar size={14} />{" "}
                 {appointment.StartDateTime?.split("T")[0]}
               </div>
 
-              <div className="flex items-center text-gray-700 gap-2 mt-2">
-                <Clock className="w-4 h-4" />
-                {appointment.StartDateTime?.split("T")[1]} –{" "}
-                {appointment.EndDateTime?.split("T")[1]}
+              <div className="flex items-center gap-2 text-gray-700 mt-2">
+                <Clock size={14} />{" "}
+                {appointment.StartDateTime?.split("T")[1]}
               </div>
             </div>
 
-            <div className="border-t border-gray-200 py-4 text-sm">
-              <div className="text-gray-700 font-semibold">
-                {service?.Name}
-              </div>
-              <div className="text-xs text-gray-500">
-                {service?.DefaultAppointmentDuration} mins with{" "}
-                {employee?.name}
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 py-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total:</span>
-                <span className="text-gray-900 font-semibold">
-                  £{Number(appointment.FinalAmount).toFixed(2)}
-                </span>
-              </div>
+            <div className="border-t mt-4 pt-4 flex justify-between text-sm">
+              <span>Total:</span>
+              <span className="font-semibold">
+                £{Number(appointment.FinalAmount).toFixed(2)}
+              </span>
             </div>
 
             <button
               onClick={handleConfirm}
-              className="w-full mt-6 py-3 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#d65f1f] transition"
+              className="w-full bg-[#E86C28] text-white mt-6 py-3 rounded-full"
             >
               Confirm
             </button>
           </div>
         </div>
       </div>
-
-      {/* FOOTER */}
-      <footer className="py-10 text-center text-gray-600 text-sm">
-        © 2025 All Rights Reserved by{" "}
-        <span className="text-[#E86C28]">Octane</span>
-      </footer>
     </div>
   );
 }

@@ -70,8 +70,8 @@ export const createStripeIntent = (payload) =>
   axios.post("/api/payment/stripe/create-intent", payload).then((r) => r.data);
 
 // PayPal
-export const createPayPalOrder = (payload) =>
-  axios.post("/api/payment/paypal/create-order", payload).then((r) => r.data);
+// export const createPayPalOrder = (payload) =>
+//   axios.post("/api/payment/paypal/create-order", payload).then((r) => r.data);
 
 export const capturePayPalOrder = (payload) =>
   axios.post("/api/payment/paypal/capture", payload).then((r) => r.data);
@@ -142,3 +142,12 @@ export const getSubscriptions = (params = {}) =>
 // Cancel a subscription
 export const cancelSubscription = (id) =>
   axios.post(`/api/admin/subscriptions/${id}/cancel`).then((r) => r.data);
+
+
+// Stripe Checkout for Appointment
+export const createStripeCheckout = (payload) =>
+  axios.post("/api/public/payment/stripe", payload).then((r) => r.data);
+
+// PayPal Order for Appointment
+export const createPayPalOrder = (payload) =>
+  axios.post("/api/public/payment/paypal", payload).then((r) => r.data);

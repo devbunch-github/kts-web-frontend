@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
+import { PublicBusinessProvider } from "./context/PublicBusinessContext";
+
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import ContactPage from "./pages/ContactPage";
@@ -33,6 +35,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import ExpenseIndex from "./pages/expenses/ExpenseIndex";
 import ExpenseForm from "./pages/expenses/ExpenseForm";
 import ExpenseView from "./pages/expenses/ExpenseView";
+
 import ServiceIndex from "./pages/service/ServiceIndex";
 import ServiceForm from "./pages/service/ServiceForm";
 import CategoryForm from "./pages/service/CategoryForm";
@@ -77,7 +80,7 @@ import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 
 import ClientLayout from "./layouts/ClientLayout";
 import ClientLogin from "./pages/client/ClientLogin";
-import ClientDashboard  from "./pages/client/ClientDashboard";
+import ClientDashboard from "./pages/client/ClientDashboard";
 import LoyaltyCardPage from "./pages/loyalty/LoyaltyCardPage";
 import LoyaltyProgramPage from "./pages/loyalty/LoyaltyProgramPage";
 
@@ -105,23 +108,25 @@ import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
 import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
 import PaymentMethodsPage from "./pages/public/PaymentMethodsPage";
 
-
 export default function App() {
   return (
-    <>
+    <PublicBusinessProvider>
       <BrowserRouter>
         <Routes>
 
-          <Route path="/business" element={<BusinessHomePage />} />
-          <Route path="/business/categories/:id" element={<CategoryServicesPage />} />
-          <Route path="/business/services/:serviceId/professionals" element={<ChooseProfessionalPage />}/>
-          <Route path="/business/booking/:serviceId/:employeeId" element={<ChooseAppointmentPage />} />
-          <Route
-            path="/business/booking/:serviceId/:employeeId/payment/:appointmentId"
-            element={<PaymentMethodsPage />}
-          />
+          {/* ===================== PUBLIC BUSINESS ROUTES ===================== */}
+          <Route path="/:subdomain">
+            <Route index element={<BusinessHomePage />} />
+            <Route path="categories/:id" element={<CategoryServicesPage />} />
+            <Route path="services/:serviceId/professionals" element={<ChooseProfessionalPage />} />
+            <Route path="booking/:serviceId/:employeeId" element={<ChooseAppointmentPage />} />
+            <Route
+              path="booking/:serviceId/:employeeId/payment/:appointmentId"
+              element={<PaymentMethodsPage />}
+            />
+          </Route>
 
-          {/* Public Routes */}
+          {/* ===================== PUBLIC ROUTES ===================== */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/contact" element={<ContactPage />} />
@@ -132,7 +137,7 @@ export default function App() {
             <Route path="/payment-cancelled" element={<PaymentCancelled />} />
           </Route>
 
-          {/* Super Admin Routes */}
+          {/* ===================== SUPER ADMIN ===================== */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
@@ -151,13 +156,15 @@ export default function App() {
             <Route path="/admin/subscription/subscribers" element={<SubscribersList />} />
           </Route>
 
-          {/* Unauthorized */}
+          {/* ===================== UNAUTHORIZED ===================== */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<Navigate to="/admin/login" replace />} />
 
-          {/* Business Dashboard Routes */}
+          {/* ===================== BUSINESS ADMIN ROUTES ===================== */}
           <Route element={<ProtectedRoute allowedRoles={["business_admin", "business"]} />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
+              
+              {/* Dashboard */}
               <Route index element={<BusinessDashboard />} />
 
               {/* Reports */}
@@ -225,33 +232,36 @@ export default function App() {
               <Route path="promo-codes/edit/:id" element={<PromoCodeForm />} />
 
               {/* Gift cards */}
-              <Route path="gift-cards" element={<GiftCardIndex />} />
+              <Route  path="gift-cards" element={<GiftCardIndex />} />
               <Route path="gift-cards/new" element={<GiftCardForm />} />
               <Route path="gift-cards/edit/:id" element={<GiftCardForm />} />
 
-              {/* Email Messages */}
+              {/* Email messages */}
               <Route path="email-messages" element={<EmailMessagesIndex />} />
               <Route path="email-messages/:id/edit" element={<EmailMessageEdit />} />
 
+              {/* Loyalty */}
               <Route path="loyalty-card" element={<LoyaltyCardPage />} />
               <Route path="loyalty-program" element={<LoyaltyProgramPage />} />
 
+              {/* Forms */}
               <Route path="forms" element={<BusinessFormsIndex />} />
               <Route path="forms/new" element={<BusinessFormEditor />} />
               <Route path="forms/:id/edit" element={<BusinessFormEditor />} />
 
+              {/* Subscription */}
               <Route path="subscription" element={<BusinessSubscriptionPage />} />
 
               {/* Profile */}
               <Route path="profile" element={<BusinessAdminProfile />} />
 
-              {/* Business Settings */}
+              {/* Settings */}
               <Route path="settings" element={<SettingsIndex />} />
               <Route path="settings/set-rota" element={<SetRotaPage />} />
             </Route>
           </Route>
 
-          {/* Accountant Routes */}
+          {/* ===================== ACCOUNTANT ===================== */}
           <Route path="/accountant/login" element={<AccountantLogin />} />
           <Route element={<ProtectedRoute allowedRoles={["accountant"]} />}>
             <Route path="/accountant" element={<AccountantLayout />}>
@@ -265,25 +275,18 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* Client Login */}
+          {/* ===================== CLIENT ===================== */}
           <Route path="/login" element={<ClientLogin />} />
-
-          {/* Protected Client Routes */}
-          <Route element={ <ProtectedRoute allowedRoles={["customer"]} /> }>
+          <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
             <Route path="/client" element={<ClientLayout />}>
               <Route index element={<ClientDashboard />} />
               <Route path="/client/dashboard" element={<ClientDashboard />} />
             </Route>
           </Route>
 
-          
         </Routes>
-
-
-
       </BrowserRouter>
 
-      {/* ✅ Toaster */}
       <Toaster
         position="top-center"
         toastOptions={{
@@ -298,6 +301,6 @@ export default function App() {
           error: { iconTheme: { primary: "#c98383", secondary: "#fff" } },
         }}
       />
-    </>
+    </PublicBusinessProvider>
   );
 }

@@ -1,42 +1,36 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // Read existing stored user (same key you're already using)
-  const getUserFromStorage = () => {
-    try {
-      const stored = localStorage.getItem("user"); // ❗️ keep same key
-      return stored ? JSON.parse(stored) : null;
-    } catch (e) {
-      return null;
+  const [user, setUser] = useState(() => {
+    const u = localStorage.getItem("user");
+    return u ? JSON.parse(u) : null;
+  });
+
+  const isAuthenticated = !!localStorage.getItem("authToken");
+
+  const login = (userData, token, customerId) => {
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("authToken", token);
+
+    if (customerId) {
+      localStorage.setItem("customer_id", customerId);
     }
-  };
 
-  const [user, setUser] = useState(getUserFromStorage());
-
-  // Login → update state + localStorage
-  const login = (userData) => {
     setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData)); // ❗️ keep same key
   };
 
-  // Logout → remove data
   const logout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("customer_id");
     setUser(null);
-    localStorage.removeItem("user"); // ❗️ keep same key
-    localStorage.removeItem("auth_token"); // optional cleanup
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        isAuthenticated: !!user, // ✅ added safely
-      }}
-    >
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
