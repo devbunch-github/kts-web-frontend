@@ -1,6 +1,6 @@
 // src/pages/public/PaymentMethodsPage.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -21,6 +21,9 @@ export default function PaymentMethodsPage() {
   const navigate = useNavigate();
   const { subdomain, appointmentId } = useParams();
 
+  // ----------------------------------------
+  // STATES – Always at top
+  // ----------------------------------------
   const [appointment, setAppointment] = useState(null);
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
@@ -28,11 +31,11 @@ export default function PaymentMethodsPage() {
   const [loading, setLoading] = useState(true);
   const [accountId, setAccountId] = useState(null);
 
-  // ======================================
-  // 1. LOAD BEAUTICIAN + ACCOUNT
-  // ======================================
+  // ----------------------------------------
+  // LOAD BEAUTICIAN
+  // ----------------------------------------
   useEffect(() => {
-    const loadBeautician = async () => {
+    async function loadBeautician() {
       try {
         const res = await listBeauticians({ subdomain });
         const b = res.data?.[0];
@@ -40,72 +43,77 @@ export default function PaymentMethodsPage() {
         if (b) {
           setBeautician(b);
           setAccountId(b.account_id);
+
           window.__currentAccountId = b.account_id;
+          localStorage.setItem("public_account_id", String(b.account_id));
         }
       } catch (err) {
         console.error("Beautician load error:", err);
       }
-    };
+    }
 
     loadBeautician();
   }, [subdomain]);
 
-  // ======================================
-  // 2. LOAD BUSINESS SETTINGS
-  // ======================================
+  // ----------------------------------------
+  // LOAD BUSINESS SETTINGS
+  // ----------------------------------------
   useEffect(() => {
-    if (!accountId) return;
+    async function loadSettings() {
+      if (!accountId) return;
 
-    const loadSettings = async () => {
       try {
         const settings = await getBusinessSetting("site", accountId);
         setBusinessSettings(settings || {});
       } catch (err) {
         console.error("Business settings load error:", err);
       }
-    };
+    }
 
     loadSettings();
   }, [accountId]);
 
-  // ======================================
-  // 3. LOAD APPOINTMENT
-  // ======================================
+  // ----------------------------------------
+  // LOAD APPOINTMENT
+  // ----------------------------------------
   useEffect(() => {
-    const load = async () => {
+    async function loadAppointment() {
       try {
-        const accountId =
+        const accId =
           window.__currentAccountId ||
           localStorage.getItem("public_account_id");
 
-        if (!accountId) {
+        if (!accId) {
           console.error("❌ No account ID found for payment page");
+          setLoading(false);
           return;
         }
 
-        const data = await getAppointment(appointmentId, accountId);
+        const data = await getAppointment(appointmentId, accId);
         setAppointment(data);
-
-      } catch (e) {
-        console.error("Failed to load appointment:", e);
+      } catch (err) {
+        console.error("Failed to load appointment:", err);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    load();
+    loadAppointment();
   }, [appointmentId]);
 
-  if (loading || !appointment) {
-    return (
-      <div className="w-full h-screen flex justify-center items-center text-gray-500">
-        Loading payment data...
-      </div>
-    );
-  }
+  // ----------------------------------------
+  // COMPUTED VALUES
+  // ----------------------------------------
+  const service = appointment?.service;
+  const employee = appointment?.employee;
 
-  const service = appointment.service;
-  const employee = appointment.employee;
+  const totalAmount = useMemo(() => {
+    const finalAmt = Number(appointment?.FinalAmount ?? 0);
+    if (finalAmt > 0) return finalAmt;
+
+    const srv = Number(service?.TotalPrice ?? 0);
+    return srv;
+  }, [appointment, service]);
 
   const finalLogo =
     businessSettings?.logo_url ||
@@ -117,32 +125,30 @@ export default function PaymentMethodsPage() {
     beautician?.cover_url ||
     "/images/dummy/dummy.png";
 
-  // ======================================
-  // 4. CONFIRM PAYMENT
-  // ======================================
+  // ----------------------------------------
+  // CONFIRM PAYMENT
+  // ----------------------------------------
   const handleConfirm = async () => {
     try {
       const payload = {
         appointment_id: appointment.Id,
         account_id: appointment.AccountId,
-        amount: appointment.FinalAmount,
+        amount: totalAmount,
+        subdomain: subdomain,  // <-- REQUIRED
       };
 
-      // -------- STRIPE --------
       if (method === "card") {
         const res = await createStripeCheckout(payload);
         if (res?.url) window.location.href = res.url;
         return;
       }
 
-      // -------- PAYPAL --------
       if (method === "paypal") {
         const res = await createPayPalOrder(payload);
         if (res?.approval_url) window.location.href = res.approval_url;
         return;
       }
 
-      // -------- PAY AT VENUE --------
       if (method === "venue") {
         await updateAppointment(appointmentId, { Status: "Unpaid" });
         navigate(`/${subdomain}/booking/confirmation/${appointmentId}`);
@@ -153,6 +159,29 @@ export default function PaymentMethodsPage() {
     }
   };
 
+
+  // ----------------------------------------
+  // UI RENDERING — safe AFTER ALL HOOKS
+  // ----------------------------------------
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center text-gray-500">
+        Loading payment data...
+      </div>
+    );
+  }
+
+  if (!appointment) {
+    return (
+      <div className="p-10 text-center text-red-500">
+        Appointment not found.
+      </div>
+    );
+  }
+
+  // ----------------------------------------
+  // PAYMENT OPTION COMPONENT
+  // ----------------------------------------
   const PaymentOption = ({ value, label, icon }) => (
     <button
       onClick={() => setMethod(value)}
@@ -175,16 +204,31 @@ export default function PaymentMethodsPage() {
     </button>
   );
 
+  // ----------------------------------------
+  // FINAL RETURN — SAFE HIERARCHY
+  // ----------------------------------------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
-      {/* Header */}
+      {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
-          <img src={finalLogo} className="h-10 object-contain" />
+          <div className="h-10 max-w-[180px] flex items-center">
+            <img
+              src={finalLogo}
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
+          </div>
+
+          <div className="flex gap-6 text-sm text-[#E86C28] font-medium">
+            <span>📞 Phone</span>
+            <span>✉️ Email</span>
+            <span>📸 Instagram</span>
+          </div>
         </div>
       </header>
 
-      {/* Cover */}
+      {/* COVER */}
       <div className="w-full h-[350px] mt-[80px] overflow-hidden relative">
         <img
           src={finalCover}
@@ -196,7 +240,7 @@ export default function PaymentMethodsPage() {
         </h1>
       </div>
 
-      {/* Content */}
+      {/* CONTENT */}
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10 px-6 py-14">
         {/* LEFT */}
         <div className="col-span-12 lg:col-span-7">
@@ -210,7 +254,7 @@ export default function PaymentMethodsPage() {
             <PaymentOption
               value="paypal"
               label="PayPal"
-              icon={<img src="/images/paypal.png" className="h-6" />}
+              icon={<img src="/images/icons/paypal-btn.png" className="h-6" />}
             />
 
             <PaymentOption
@@ -228,6 +272,7 @@ export default function PaymentMethodsPage() {
               <img
                 src={service?.ImagePath}
                 className="w-20 h-20 rounded-lg object-cover"
+                alt=""
               />
               <div>
                 <h3 className="font-semibold">{service?.Name}</h3>
@@ -252,9 +297,7 @@ export default function PaymentMethodsPage() {
 
             <div className="border-t mt-4 pt-4 flex justify-between text-sm">
               <span>Total:</span>
-              <span className="font-semibold">
-                £{Number(appointment.FinalAmount).toFixed(2)}
-              </span>
+              <span className="font-semibold">£{totalAmount.toFixed(2)}</span>
             </div>
 
             <button
@@ -266,6 +309,12 @@ export default function PaymentMethodsPage() {
           </div>
         </div>
       </div>
+
+      {/* FOOTER */}
+      <footer className="py-10 text-center text-gray-600 text-sm">
+        © 2025 All Rights Reserved by{" "}
+        <span className="text-[#E86C28]">Octane</span>
+      </footer>
     </div>
   );
 }

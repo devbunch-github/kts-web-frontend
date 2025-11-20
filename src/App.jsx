@@ -107,6 +107,7 @@ import CategoryServicesPage from "./pages/public/CategoryServicesPage.jsx";
 import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
 import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
 import PaymentMethodsPage from "./pages/public/PaymentMethodsPage";
+import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
 
 export default function App() {
   return (
@@ -123,6 +124,15 @@ export default function App() {
             <Route
               path="booking/:serviceId/:employeeId/payment/:appointmentId"
               element={<PaymentMethodsPage />}
+            />
+            <Route
+              path="payment/success/:appointmentId"
+              element={<PaymentSuccessPage />}
+            />
+
+            <Route
+              path="payment/cancel/:appointmentId"
+              element={<PaymentCancelled />}
             />
           </Route>
 
