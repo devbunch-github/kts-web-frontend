@@ -134,7 +134,7 @@ export default function PaymentMethodsPage() {
         appointment_id: appointment.Id,
         account_id: appointment.AccountId,
         amount: totalAmount,
-        subdomain: subdomain,  // <-- REQUIRED
+        subdomain: subdomain,
       };
 
       if (method === "card") {
