@@ -78,3 +78,16 @@ export const listPublicGiftCards = async (accountId) => {
     return [];
   }
 };
+
+export const getPublicGiftCard = async (id, accountId) => {
+  try {
+    const res = await http.get(`/api/public/gift-card/${id}`, {
+      params: { account_id: accountId },
+    });
+
+    return res.data?.data || res.data;
+  } catch (err) {
+    console.error("getPublicGiftCard error:", err);
+    throw err;
+  }
+};

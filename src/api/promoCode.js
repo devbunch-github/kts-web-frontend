@@ -64,3 +64,16 @@ export const deletePromoCode = async (id) => {
     throw err;
   }
 };
+
+// ========================
+// 🟢 PUBLIC VALIDATION – used on booking page
+// ========================
+export const validatePublicPromoCode = async (params = {}) => {
+  try {
+    const res = await http.get("/api/public/promo/validate", { params });
+    return res.data; // { valid: bool, data?, message? }
+  } catch (err) {
+    console.error("validatePublicPromoCode error:", err);
+    throw err;
+  }
+};

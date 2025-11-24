@@ -1,7 +1,7 @@
 // src/pages/public/PaymentMethodsPage.jsx
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   MapPin,
   Star,
@@ -20,11 +20,22 @@ import { getBusinessSetting } from "../../api/settings";
 export default function PaymentMethodsPage() {
   const navigate = useNavigate();
   const { subdomain, appointmentId } = useParams();
+  const location = useLocation();
+
+  // ----------------------------------------
+  // MULTI PAYMENT MODE (ids from query string)
+  // ----------------------------------------
+  const query = new URLSearchParams(location.search);
+  const multiIdsParam = query.get("ids"); // e.g. "12,14,15"
+  const isMulti = !!multiIdsParam;
+  const multiIds = isMulti
+    ? multiIdsParam.split(",").map((id) => Number(id))
+    : [];
 
   // ----------------------------------------
   // STATES – Always at top
   // ----------------------------------------
-  const [appointment, setAppointment] = useState(null);
+  const [appointments, setAppointments] = useState(null); // object (single) OR array (multi)
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
   const [method, setMethod] = useState("card");
@@ -74,10 +85,10 @@ export default function PaymentMethodsPage() {
   }, [accountId]);
 
   // ----------------------------------------
-  // LOAD APPOINTMENT
+  // LOAD APPOINTMENT(S)
   // ----------------------------------------
   useEffect(() => {
-    async function loadAppointment() {
+    async function loadAppointments() {
       try {
         const accId =
           window.__currentAccountId ||
@@ -89,31 +100,58 @@ export default function PaymentMethodsPage() {
           return;
         }
 
-        const data = await getAppointment(appointmentId, accId);
-        setAppointment(data);
+        if (isMulti && multiIds.length) {
+          const list = [];
+          for (const id of multiIds) {
+            const data = await getAppointment(id, accId);
+            list.push(data);
+          }
+          setAppointments(list); // array
+        } else {
+          const data = await getAppointment(appointmentId, accId);
+          setAppointments(data); // single object
+        }
       } catch (err) {
-        console.error("Failed to load appointment:", err);
+        console.error("Failed to load appointment(s):", err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadAppointment();
-  }, [appointmentId]);
+    loadAppointments();
+  }, [appointmentId, isMulti, multiIdsParam]);
 
   // ----------------------------------------
   // COMPUTED VALUES
   // ----------------------------------------
-  const service = appointment?.service;
-  const employee = appointment?.employee;
+  const isMultiMode =
+    isMulti && Array.isArray(appointments) && appointments.length > 0;
+
+  const primaryAppointment = isMultiMode
+    ? appointments[0]
+    : appointments || null;
+
+  const service = primaryAppointment?.service;
+  const employee = primaryAppointment?.employee;
 
   const totalAmount = useMemo(() => {
-    const finalAmt = Number(appointment?.FinalAmount ?? 0);
+    if (isMultiMode) {
+      return appointments.reduce((sum, appt) => {
+        const val =
+          Number(appt.FinalAmount ?? 0) ||
+          Number(appt.service?.TotalPrice ?? 0);
+        return sum + val;
+      }, 0);
+    }
+
+    if (!primaryAppointment) return 0;
+
+    const finalAmt = Number(primaryAppointment.FinalAmount ?? 0);
     if (finalAmt > 0) return finalAmt;
 
-    const srv = Number(service?.TotalPrice ?? 0);
+    const srv = Number(primaryAppointment.service?.TotalPrice ?? 0);
     return srv;
-  }, [appointment, service]);
+  }, [appointments, isMultiMode, primaryAppointment]);
 
   const finalLogo =
     businessSettings?.logo_url ||
@@ -129,13 +167,25 @@ export default function PaymentMethodsPage() {
   // CONFIRM PAYMENT
   // ----------------------------------------
   const handleConfirm = async () => {
+    if (!primaryAppointment) return;
+
     try {
-      const payload = {
-        appointment_id: appointment.Id,
-        account_id: appointment.AccountId,
-        amount: totalAmount,
-        subdomain: subdomain,
-      };
+      const payload = isMultiMode
+        ? {
+            // keep old key for backward compatibility
+            appointment_id: primaryAppointment.Id,
+            // new multi-support for backend (safe to ignore if not implemented)
+            appointment_ids: appointments.map((a) => a.Id),
+            account_id: primaryAppointment.AccountId,
+            amount: totalAmount,
+            subdomain,
+          }
+        : {
+            appointment_id: primaryAppointment.Id,
+            account_id: primaryAppointment.AccountId,
+            amount: totalAmount,
+            subdomain,
+          };
 
       if (method === "card") {
         const res = await createStripeCheckout(payload);
@@ -150,8 +200,18 @@ export default function PaymentMethodsPage() {
       }
 
       if (method === "venue") {
-        await updateAppointment(appointmentId, { Status: "Unpaid" });
-        navigate(`/${subdomain}/booking/confirmation/${appointmentId}`);
+        if (isMultiMode) {
+          for (const appt of appointments) {
+            await updateAppointment(appt.Id, { Status: "Unpaid" });
+          }
+          // simple redirect; your success page is mainly for online payments
+          navigate(`/${subdomain}`);
+        } else {
+          await updateAppointment(primaryAppointment.Id, { Status: "Unpaid" });
+          navigate(
+            `/${subdomain}/booking/confirmation/${primaryAppointment.Id}`
+          );
+        }
       }
     } catch (err) {
       console.error("Payment error:", err);
@@ -159,9 +219,8 @@ export default function PaymentMethodsPage() {
     }
   };
 
-
   // ----------------------------------------
-  // UI RENDERING — safe AFTER ALL HOOKS
+  // UI RENDERING
   // ----------------------------------------
   if (loading) {
     return (
@@ -171,7 +230,7 @@ export default function PaymentMethodsPage() {
     );
   }
 
-  if (!appointment) {
+  if (!primaryAppointment) {
     return (
       <div className="p-10 text-center text-red-500">
         Appointment not found.
@@ -205,7 +264,7 @@ export default function PaymentMethodsPage() {
   );
 
   // ----------------------------------------
-  // FINAL RETURN — SAFE HIERARCHY
+  // FINAL RETURN
   // ----------------------------------------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
@@ -236,7 +295,7 @@ export default function PaymentMethodsPage() {
           alt="Cover"
         />
         <h1 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-4xl font-semibold drop-shadow-lg">
-          Payment Methods
+          {isMultiMode ? "Payment for multiple services" : "Payment Methods"}
         </h1>
       </div>
 
@@ -269,29 +328,42 @@ export default function PaymentMethodsPage() {
         <div className="col-span-12 lg:col-span-5">
           <div className="bg-white rounded-2xl shadow p-6">
             <div className="flex gap-4">
-              <img
-                src={service?.ImagePath}
-                className="w-20 h-20 rounded-lg object-cover"
-                alt=""
-              />
+              {service?.ImagePath && (
+                <img
+                  src={service.ImagePath}
+                  className="w-20 h-20 rounded-lg object-cover"
+                  alt=""
+                />
+              )}
               <div>
-                <h3 className="font-semibold">{service?.Name}</h3>
+                <h3 className="font-semibold">
+                  {isMultiMode
+                    ? `${service?.Name || "Service"} + ${
+                        appointments.length - 1
+                      } more`
+                    : service?.Name}
+                </h3>
                 <p className="text-xs text-gray-600 flex items-center gap-1">
                   <MapPin size={12} />
                   {beautician?.city}, {beautician?.country}
                 </p>
+                {isMultiMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {appointments.length} appointments in this payment
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="border-t mt-4 pt-3 text-sm">
               <div className="flex items-center gap-2 text-gray-700">
                 <Calendar size={14} />{" "}
-                {appointment.StartDateTime?.split("T")[0]}
+                {primaryAppointment.StartDateTime?.split("T")[0]}
               </div>
 
               <div className="flex items-center gap-2 text-gray-700 mt-2">
                 <Clock size={14} />{" "}
-                {appointment.StartDateTime?.split("T")[1]}
+                {primaryAppointment.StartDateTime?.split("T")[1]}
               </div>
             </div>
 

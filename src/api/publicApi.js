@@ -151,3 +151,29 @@ export const createStripeCheckout = (payload) =>
 // PayPal Order for Appointment
 export const createPayPalOrder = (payload) =>
   axios.post("/api/public/payment/paypal", payload).then((r) => r.data);
+
+
+
+// src/api/publicApi.js
+
+import http from "./http";
+
+// Gift card – Stripe
+export const createGiftCardStripeCheckout = async (payload) => {
+  const res = await http.post("/api/public/gift-cards/stripe", payload);
+  return res.data;
+};
+
+// Gift card – PayPal
+export const createGiftCardPayPalOrder = async (payload) => {
+  const res = await http.post("/api/public/gift-cards/paypal", payload);
+  return res.data;
+};
+
+// Optional: confirm after success page hits backend
+export const markGiftCardPurchasePaid = async (purchaseId) => {
+  const res = await http.post(
+    `/api/public/gift-cards/purchase/${purchaseId}/mark-paid`
+  );
+  return res.data;
+};

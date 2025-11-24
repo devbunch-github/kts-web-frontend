@@ -13,6 +13,8 @@ import { listServices } from "../../api/service";
 import AuthModal from "../../components/public/AuthModal";
 import { useAuth } from "../../context/AuthContext";
 import { createAppointment } from "../../api/appointment";
+import { validatePublicPromoCode } from "../../api/promoCode";
+
 
 function timeToMinutes(t) {
   if (!t) return 0;
@@ -109,6 +111,12 @@ export default function ChooseAppointmentPage() {
   const [bookingEmployeeId, setBookingEmployeeId] = useState(null);
 
   const headerLoading = loadingBeautician || loadingSettings;
+  const [discountMode, setDiscountMode] = useState("none"); // 'none' | 'promo'
+  const [promoInput, setPromoInput] = useState("");
+  const [promoApplying, setPromoApplying] = useState(false);
+  const [promoError, setPromoError] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);   // { code, discount_type, discount_value, ... }
+
 
   useEffect(() => {
     const loadBeautician = async () => {
@@ -242,15 +250,18 @@ export default function ChooseAppointmentPage() {
     return weekday;
   }, [calendarMonth]);
 
-  useEffect(() => {
-    if (!selectedDate || !service) {
-      setTimeSlots([]);
-      setSelectedTime(null);
-      setBookingEmployeeId(null);
-      return;
-    }
+  function formatDateLocal(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 
-    const dateStr = selectedDate.toISOString().slice(0, 10);
+
+  useEffect(() => {
+    if (!selectedDate || !service || loadingMain) return;
+
+    const dateStr = formatDateLocal(selectedDate);
 
     const durationMinutes =
       Number(service.DefaultAppointmentDuration || 30) *
@@ -258,13 +269,11 @@ export default function ChooseAppointmentPage() {
 
     const loadSlots = async () => {
       try {
+        // CASE 1: Specific employee selected
         if (employeeId !== "any") {
-          const empId = employee?.id || Number(employeeId);
-          if (!empId) {
-            setTimeSlots([]);
-            return;
-          }
+          if (!employee) return; // ❗ Wait until employee loads
 
+          const empId = employee.id;
           const res = await getWeekSchedule(empId, dateStr);
           const day = res?.days?.find((d) => d.date === dateStr);
           const slots = buildSlotsFromDay(day, durationMinutes, empId);
@@ -275,10 +284,8 @@ export default function ChooseAppointmentPage() {
           return;
         }
 
-        if (!serviceEmployees.length) {
-          setTimeSlots([]);
-          return;
-        }
+        // CASE 2: ANY employee (merge all)
+        if (!serviceEmployees.length) return; // ❗ Wait for employees to load
 
         const promises = serviceEmployees.map((emp) =>
           getWeekSchedule(emp.id, dateStr).then((res) => {
@@ -293,13 +300,21 @@ export default function ChooseAppointmentPage() {
         setTimeSlots(merged);
         setSelectedTime(null);
         setBookingEmployeeId(null);
-      } catch (e) {
+      } catch (err) {
         setTimeSlots([]);
       }
     };
 
     loadSlots();
-  }, [selectedDate, service, employeeId, employee, serviceEmployees]);
+  }, [
+    selectedDate,
+    service,
+    employeeId,
+    employee,
+    serviceEmployees,
+    loadingMain, // ensure employees/service loaded
+  ]);
+
 
   const effectiveEmployeeName = useMemo(() => {
     if (employee) return employee.name;
@@ -313,6 +328,76 @@ export default function ChooseAppointmentPage() {
 
     return "any professional";
   }, [employee, bookingEmployeeId, serviceEmployees]);
+
+    const basePrice = useMemo(
+    () => Number(service?.TotalPrice || 0),
+    [service]
+  );
+
+  const discountAmount = useMemo(() => {
+    if (!service || !appliedPromo) return 0;
+
+    const value = Number(appliedPromo.discount_value || 0);
+    if (!value) return 0;
+
+    if (appliedPromo.discount_type === "percent") {
+      return Math.min(basePrice, (basePrice * value) / 100);
+    }
+
+    // fixed amount
+    return Math.min(basePrice, value);
+  }, [service, appliedPromo, basePrice]);
+
+  const finalTotal = useMemo(
+    () => Math.max(0, basePrice - discountAmount),
+    [basePrice, discountAmount]
+  );
+
+
+    const handleApplyPromo = async () => {
+    setPromoError("");
+
+    if (!service || !ACCOUNT_ID) {
+      setPromoError("Service not loaded yet.");
+      return;
+    }
+
+    const code = promoInput.trim();
+    if (!code) {
+      setPromoError("Please enter a promo code.");
+      return;
+    }
+
+    setPromoApplying(true);
+
+    try {
+      const res = await validatePublicPromoCode({
+        account_id: ACCOUNT_ID,
+        service_id: service.Id,
+        code,
+      });
+
+      if (!res?.valid) {
+        setAppliedPromo(null);
+        setPromoError(res?.message || "Invalid or expired promo code.");
+        return;
+      }
+
+      setAppliedPromo(res.data || res);
+      setPromoError("");
+    } catch (err) {
+      console.error("Apply promo error:", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Invalid or expired promo code.";
+      setAppliedPromo(null);
+      setPromoError(msg);
+    } finally {
+      setPromoApplying(false);
+    }
+  };
+
 
   const handleContinue = async () => {
     if (!service) return;
@@ -357,7 +442,7 @@ export default function ChooseAppointmentPage() {
         return;
       }
 
-      const payload = {
+  const payload = {
         ServiceId: Number(serviceId),
         EmployeeId: resolvedEmployeeId,
         CustomerId: Number(customerId),
@@ -367,12 +452,14 @@ export default function ChooseAppointmentPage() {
         Status: "Pending",
         Cost: service.TotalPrice,
         Deposit: service.Deposit || 0,
-        FinalAmount: service.TotalPrice,
+        FinalAmount: finalTotal,                     // ✅ discounted total
         Tip: 0,
         RefundAmount: 0,
-        Discount: 0,
+        Discount: discountAmount,                    // ✅ amount off
         DateCreated: new Date().toISOString(),
+        PromoCode: appliedPromo?.code || null,       // optional, if you want it in DB
       };
+
 
       const appt = await createAppointment(payload);
 
@@ -563,7 +650,7 @@ export default function ChooseAppointmentPage() {
 
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-
+            {/* Service header */}
             <div className="flex gap-4 mb-4">
               <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
                 <img
@@ -577,15 +664,14 @@ export default function ChooseAppointmentPage() {
                 <h3 className="font-semibold text-sm">{service?.Name}</h3>
                 <p className="flex items-center text-xs text-gray-500 gap-1">
                   <MapPin size={12} className="text-[#E86C28]" />
-                  {businessLocation}
+                  {beautician?.city}, {beautician?.country}
                 </p>
-
-                <p className="text-xs flex items-center gap-1 text-gray-600">
-                  <Star size={12} className="text-yellow-500" /> 5.0 (1)
+                <p className="flex items-center text-xs text-gray-500 gap-1 mt-1">
+                  <Star size={12} className="text-yellow-400" />
+                  <span>5 (1)</span>
                 </p>
-
                 {service?.Deposit && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[11px] text-gray-500 mt-1">
                     Min Deposit{" "}
                     {service.DepositType === 0
                       ? `${service.Deposit}%`
@@ -595,36 +681,126 @@ export default function ChooseAppointmentPage() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-4 mt-2">
-              <div className="flex items-center gap-2 text-sm text-[#E86C28] mb-2">
-                <CalendarDays size={16} />
-                {selectedDate
-                  ? selectedDate.toDateString()
-                  : "No date selected"}
+            {/* Selected date/time */}
+            <div className="mt-4 text-sm space-y-2">
+              <div className="flex items-center gap-2 text-gray-700">
+                <CalendarDays size={16} className="text-[#E86C28]" />
+                {selectedDate ? (
+                  <span>
+                    {selectedDate.toLocaleDateString(undefined, {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                ) : (
+                  <span>No date selected</span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-[#E86C28]">
+              <div className="flex items-center gap-2 text-[#E86C28]">
                 <Clock size={16} />
-                {selectedTime || "No time selected"}
+                <span>{selectedTime || "No time selected"}</span>
               </div>
-            </div>
 
-            <div className="mt-4 text-sm">
-              <p className="text-gray-800 font-medium">
-                {beautician?.business_name || beautician?.name || "Octane"}
-              </p>
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-xs mt-1">
+                {beautician?.business_name} –{" "}
                 {service?.DefaultAppointmentDuration}{" "}
-                {service?.DurationUnit === "hours" ? "hours" : "mins"}{" "}
-                with {effectiveEmployeeName}
+                {service?.DurationUnit === "hours" ? "hours" : "mins"} with{" "}
+                {effectiveEmployeeName}
               </p>
             </div>
 
-            <div className="border-t border-gray-200 mt-6 pt-4 flex justify-between text-sm">
-              <span className="font-semibold text-[#222]">Total:</span>
-              <span className="font-semibold text-[#222]">
-                £{Number(service?.TotalPrice || 0).toFixed(2)}
-              </span>
+            {/* Promo selection */}
+            <div className="border-t border-gray-200 mt-5 pt-4 text-sm">
+              <p className="text-xs font-semibold text-gray-700 mb-2">
+                Discount options
+              </p>
+
+              <div className="space-y-1">
+                {/* You can hook Gift Card / Loyalty later – for now only promo is functional */}
+                <label className="flex items-center gap-2 text-xs text-gray-700">
+                  <input
+                    type="radio"
+                    name="discount_mode"
+                    value="none"
+                    checked={discountMode === "none"}
+                    onChange={() => {
+                      setDiscountMode("none");
+                      setAppliedPromo(null);
+                      setPromoError("");
+                    }}
+                  />
+                  <span>None</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-700">
+                  <input
+                    type="radio"
+                    name="discount_mode"
+                    value="promo"
+                    checked={discountMode === "promo"}
+                    onChange={() => setDiscountMode("promo")}
+                  />
+                  <span>Promo Code</span>
+                </label>
+              </div>
+
+              {discountMode === "promo" && (
+                <div className="mt-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-300 rounded-full px-3 py-2 text-xs"
+                      placeholder="Enter promo code"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoApplying}
+                      className="px-4 py-2 rounded-full bg-[#E86C28] text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      {promoApplying ? "Applying..." : "APPLY"}
+                    </button>
+                  </div>
+
+                  {promoError && (
+                    <p className="text-[11px] text-red-500 mt-1">{promoError}</p>
+                  )}
+
+                  {appliedPromo && !promoError && (
+                    <p className="text-[11px] text-green-600 mt-1">
+                      Applied <strong>{appliedPromo.code}</strong> –{" "}
+                      {appliedPromo.discount_type === "percent"
+                        ? `${appliedPromo.discount_value}% off`
+                        : `£${Number(appliedPromo.discount_value).toFixed(2)} off`}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Totals */}
+            <div className="border-t border-gray-200 mt-5 pt-4 text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Subtotal</span>
+                <span>£{basePrice.toFixed(2)}</span>
+              </div>
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-[#E86C28] text-sm">
+                  <span>Promo discount</span>
+                  <span>-£{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-semibold">
+                <span>Total:</span>
+                <span>£{finalTotal.toFixed(2)}</span>
+              </div>
             </div>
 
             <button
@@ -633,24 +809,26 @@ export default function ChooseAppointmentPage() {
             >
               Continue
             </button>
-
-            <AuthModal
-              open={showAuth}
-              onClose={() => setShowAuth(false)}
-              mode="login"
-              onSuccess={() => {
-                setShowAuth(false);
-                handleContinue();
-              }}
-            />
           </div>
         </div>
+
       </div>
 
       <footer className="py-10 text-center text-gray-600 text-sm">
         © 2025 All Rights Reserved by{" "}
         <span className="text-[#E86C28]">Octane</span>
       </footer>
+
+      <AuthModal
+        open={showAuth}
+        onClose={() => setShowAuth(false)}
+        mode="login"
+        onSuccess={() => {
+          setShowAuth(false);
+          handleContinue();
+        }}
+      />
+
     </div>
   );
 }

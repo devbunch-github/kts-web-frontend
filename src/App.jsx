@@ -108,6 +108,10 @@ import ChooseProfessionalPage from "./pages/public/ChooseProfessionalPage.jsx";
 import ChooseAppointmentPage from "./pages/public/ChooseAppointmentPage.jsx";
 import PaymentMethodsPage from "./pages/public/PaymentMethodsPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
+import MultiBookingPage from "./pages/public/MultiBookingPage";
+import GiftCardPaymentPage from "./pages/public/GiftCardPaymentPage.jsx";
+import GiftCardThankYouPage from "./pages/public/GiftCardThankYouPage.jsx";
+import GiftCardPaymentCancelled from "./pages/public/GiftCardPaymentCancelled.jsx";
 
 export default function App() {
   return (
@@ -129,10 +133,33 @@ export default function App() {
               path="payment/success/:appointmentId"
               element={<PaymentSuccessPage />}
             />
+            <Route path="booking/multi" element={<MultiBookingPage />} />
 
             <Route
               path="payment/cancel/:appointmentId"
               element={<PaymentCancelled />}
+            />
+
+            {/* -------------------------------------------------- */}
+            {/* 🟧  GIFT CARD ROUTES (Add these)                   */}
+            {/* -------------------------------------------------- */}
+
+            {/* Purchase/payment UI */}
+            <Route
+              path="gift-card/:id/payment"
+              element={<GiftCardPaymentPage />}
+            />
+
+            {/* Stripe or PayPal success redirect page */}
+            <Route
+              path="gift-card/payment/success/:purchaseId"
+              element={<GiftCardThankYouPage />}
+            />
+
+            {/* Optional – user cancelled payment */}
+            <Route
+              path="gift-card/payment/cancel/:purchaseId"
+              element={<GiftCardPaymentCancelled />}
             />
           </Route>
 

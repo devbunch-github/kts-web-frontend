@@ -7,6 +7,24 @@ import { getBusinessSetting } from "../../api/settings";
 import { listBeauticians } from "../../api/beautician";
 import { listPublicGiftCards } from "../../api/giftCards";
 
+const CART_STORAGE_KEY = "booking_cart";
+
+function loadCart() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(cart) {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  } catch {}
+}
+
 export default function CategoryServicesPage() {
   const { subdomain, id } = useParams(); // ⭐ dynamic subdomain + category ID
   const navigate = useNavigate();
@@ -25,6 +43,36 @@ export default function CategoryServicesPage() {
   const [loadingServices, setLoadingServices] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(id);
   const [selectedServices, setSelectedServices] = useState([]);
+
+  // 🛒 booking cart (multi-service selection, across categories)
+  const [cart, setCart] = useState(() => loadCart());
+
+  useEffect(() => {
+    saveCart(cart);
+  }, [cart]);
+
+  const isInCart = (serviceId) =>
+    cart.some((item) => String(item.serviceId) === String(serviceId));
+
+  const toggleCartService = (srv) => {
+    setCart((prev) => {
+      const exists = prev.some(
+        (item) => String(item.serviceId) === String(srv.Id)
+      );
+      if (exists) {
+        return prev.filter(
+          (item) => String(item.serviceId) !== String(srv.Id)
+        );
+      }
+      return [
+        ...prev,
+        {
+          serviceId: srv.Id,
+          accountId: ACCOUNT_ID,
+        },
+      ];
+    });
+  };
 
   // ------------------------------------------------------
   // 1. LOAD BEAUTICIAN BY SUBDOMAIN (get account_id here)
@@ -165,7 +213,6 @@ export default function CategoryServicesPage() {
   // ------------------------------------------------------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
-
       {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
@@ -190,11 +237,18 @@ export default function CategoryServicesPage() {
         <SkeletonHeader />
       ) : (
         <div className="w-full h-[430px] mt-[80px] overflow-hidden relative">
-          <img src={finalCover} className="w-full h-full object-cover brightness-[0.75]" />
+          <img
+            src={finalCover}
+            className="w-full h-full object-cover brightness-[0.75]"
+          />
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <h1 className="text-white text-4xl font-semibold text-center drop-shadow-lg">
-              {categories.find((c) => String(c.id) === String(selectedCategory))?.Name}
+              {
+                categories.find(
+                  (c) => String(c.id) === String(selectedCategory)
+                )?.Name
+              }
             </h1>
           </div>
         </div>
@@ -202,7 +256,6 @@ export default function CategoryServicesPage() {
 
       {/* LAYOUT */}
       <div className="max-w-7xl mx-auto py-16 px-6 grid grid-cols-12 gap-10">
-
         {/* ------------------------------------------------- SIDEBAR ------------------------------------------------- */}
         <aside className="col-span-12 lg:col-span-3 bg-white shadow-md rounded-xl p-6 sticky top-[140px] self-start">
           <h3 className="font-semibold text-lg mb-4">
@@ -249,7 +302,10 @@ export default function CategoryServicesPage() {
               <p className="text-xs text-gray-500">No services found.</p>
             ) : (
               sidebarServices.map((srv) => (
-                <label key={srv.Id} className="flex items-center gap-2 mb-2 text-sm text-[#444]">
+                <label
+                  key={srv.Id}
+                  className="flex items-center gap-2 mb-2 text-sm text-[#444]"
+                >
                   <input
                     type="checkbox"
                     checked={selectedServices.includes(srv.Name)}
@@ -275,7 +331,10 @@ export default function CategoryServicesPage() {
               <p className="text-sm text-gray-500">No gift cards available</p>
             ) : (
               giftCards.map((card) => (
-                <div key={card.id} className="flex items-center gap-3 bg-[#FAFAFA] border rounded-lg p-3 shadow-sm mb-3">
+                <div
+                  key={card.id}
+                  className="flex items-center gap-3 bg-[#FAFAFA] border rounded-lg p-3 shadow-sm mb-3"
+                >
                   <img
                     src={card.image_url || "/images/dummy/dummy.png"}
                     className="w-16 h-16 object-cover rounded-md"
@@ -288,7 +347,9 @@ export default function CategoryServicesPage() {
                     </p>
                     <span
                       className={`text-xs mt-1 inline-block px-2 py-1 rounded ${
-                        card.is_active ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                        card.is_active
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
                       }`}
                     >
                       {card.is_active ? "Active" : "Inactive"}
@@ -304,7 +365,9 @@ export default function CategoryServicesPage() {
         <div className="col-span-12 lg:col-span-9">
           {loadingServices ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-              {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : filteredServices.length === 0 ? (
             <p className="text-center text-gray-500 text-lg mt-10">
@@ -312,59 +375,99 @@ export default function CategoryServicesPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-              {filteredServices.map((srv) => (
-                <div
-                  key={srv.Id}
-                  className="bg-white rounded-2xl shadow p-6 flex flex-col hover:shadow-lg transition"
-                >
-                  <h3 className="font-semibold text-lg mb-1">{srv.Name}</h3>
+              {filteredServices.map((srv) => {
+                const inCart = isInCart(srv.Id);
+                return (
+                  <div
+                    key={srv.Id}
+                    className="bg-white rounded-2xl shadow p-6 flex flex-col hover:shadow-lg transition"
+                  >
+                    <h3 className="font-semibold text-lg mb-1">{srv.Name}</h3>
 
-                  <p className="text-sm text-[#E86C28] mb-2">
-                    {srv.DefaultAppointmentDuration}
-                    {" "}
-                    {srv.DurationUnit === "hours" ? "hr" : "mins"}
-                  </p>
-
-
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                    {srv.Description || "No description available."}
-                  </p>
-
-                  <div className="border-t border-gray-200 mt-auto pt-4">
-                    <p className="font-semibold text-[#333]">
-                      from £{Number(srv.TotalPrice).toFixed(2)}
+                    <p className="text-sm text-[#E86C28] mb-2">
+                      {srv.DefaultAppointmentDuration}{" "}
+                      {srv.DurationUnit === "hours" ? "hr" : "mins"}
                     </p>
 
-                    {srv.Deposit != null && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Min Deposit{" "}
-                        {srv.DepositType === 0
-                          ? `${Number(srv.Deposit)}%`
-                          : `£${Number(srv.Deposit).toFixed(2)}`}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                      {srv.Description || "No description available."}
+                    </p>
 
-                    <button
-                      className="mt-4 w-full py-2 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#cf5f20] transition"
-                      onClick={() =>
-                        navigate(`/${subdomain}/services/${srv.Id}/professionals`)
-                      }
-                    >
-                      Book Now
-                    </button>
+                    <div className="border-t border-gray-200 mt-auto pt-4 space-y-2">
+                      <p className="font-semibold text-[#333]">
+                        from £{Number(srv.TotalPrice).toFixed(2)}
+                      </p>
+
+                      {srv.Deposit != null && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Min Deposit{" "}
+                          {srv.DepositType === 0
+                            ? `${Number(srv.Deposit)}%`
+                            : `£${Number(srv.Deposit).toFixed(2)}`}
+                        </p>
+                      )}
+
+                      {/* Original "Book Now" (single-service flow) */}
+                      <button
+                        className="mt-2 w-full py-2 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#cf5f20] transition text-sm"
+                        onClick={() =>
+                          navigate(
+                            `/${subdomain}/services/${srv.Id}/professionals`
+                          )
+                        }
+                      >
+                        Book Now
+                      </button>
+
+                      {/* 🛒 New Add/Remove to multi-booking cart */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCartService(srv)}
+                        className={`mt-2 w-full py-2 rounded-full border text-sm font-medium ${
+                          inCart
+                            ? "border-gray-300 text-gray-700 bg-gray-50"
+                            : "border-[#E86C28] text-[#E86C28] hover:bg-[#FFF5EF]"
+                        }`}
+                      >
+                        {inCart ? "Remove from booking" : "Add to booking"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-
       </div>
+
+      {/* 🛒 Sticky bar when there are services in the cart */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between text-sm">
+            <div>
+              <span className="font-semibold">
+                {cart.length} service{cart.length > 1 ? "s" : ""} selected
+              </span>
+              <span className="text-gray-500 ml-2">
+                You can pick professionals & times on the next step.
+              </span>
+            </div>
+            <button
+              className="px-6 py-2 rounded-full bg-[#E86C28] text-white font-medium hover:bg-[#cf5f20] transition"
+              onClick={() => navigate(`/${subdomain}/booking/multi`)}
+            >
+              Continue to booking
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer className="py-10 text-center text-gray-600 text-sm">
         © 2025 All Rights Reserved by{" "}
-        <span className="text-[#E86C28]">{beautician?.name || "Business"}</span>
+        <span className="text-[#E86C28]">
+          {beautician?.name || "Business"}
+        </span>
       </footer>
     </div>
   );
