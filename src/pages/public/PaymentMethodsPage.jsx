@@ -21,6 +21,12 @@ export default function PaymentMethodsPage() {
   const navigate = useNavigate();
   const { subdomain, appointmentId } = useParams();
   const location = useLocation();
+  const state = location.state || {};
+
+  // ----------------------------------------
+  // Payment Mode from previous page
+  // ----------------------------------------
+  const paymentOption = state.paymentOption || "full";
 
   // ----------------------------------------
   // MULTI PAYMENT MODE (ids from query string)
@@ -33,9 +39,9 @@ export default function PaymentMethodsPage() {
     : [];
 
   // ----------------------------------------
-  // STATES – Always at top
+  // STATES
   // ----------------------------------------
-  const [appointments, setAppointments] = useState(null); // object (single) OR array (multi)
+  const [appointments, setAppointments] = useState(null);
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
   const [method, setMethod] = useState("card");
@@ -134,24 +140,31 @@ export default function PaymentMethodsPage() {
   const service = primaryAppointment?.service;
   const employee = primaryAppointment?.employee;
 
+  // full totals for multi
   const totalAmount = useMemo(() => {
-    if (isMultiMode) {
-      return appointments.reduce((sum, appt) => {
-        const val =
-          Number(appt.FinalAmount ?? 0) ||
-          Number(appt.service?.TotalPrice ?? 0);
-        return sum + val;
-      }, 0);
-    }
+    if (!isMultiMode) return 0;
 
+    return appointments.reduce((sum, appt) => {
+      const val =
+        Number(appt.FinalAmount ?? 0) ||
+        Number(appt.service?.TotalPrice ?? 0);
+      return sum + val;
+    }, 0);
+  }, [appointments, isMultiMode]);
+
+  // amount based on single deposit/full mode
+  const amountToCharge = useMemo(() => {
     if (!primaryAppointment) return 0;
 
-    const finalAmt = Number(primaryAppointment.FinalAmount ?? 0);
-    if (finalAmt > 0) return finalAmt;
+    if (isMultiMode) return totalAmount;
 
-    const srv = Number(primaryAppointment.service?.TotalPrice ?? 0);
-    return srv;
-  }, [appointments, isMultiMode, primaryAppointment]);
+    if (paymentOption === "deposit") {
+      return Number(primaryAppointment.Deposit ?? 0);
+    }
+
+    return Number(primaryAppointment.FinalAmount ?? 0);
+  }, [primaryAppointment, paymentOption, isMultiMode, totalAmount]);
+
 
   const finalLogo =
     businessSettings?.logo_url ||
@@ -172,9 +185,7 @@ export default function PaymentMethodsPage() {
     try {
       const payload = isMultiMode
         ? {
-            // keep old key for backward compatibility
             appointment_id: primaryAppointment.Id,
-            // new multi-support for backend (safe to ignore if not implemented)
             appointment_ids: appointments.map((a) => a.Id),
             account_id: primaryAppointment.AccountId,
             amount: totalAmount,
@@ -183,7 +194,7 @@ export default function PaymentMethodsPage() {
         : {
             appointment_id: primaryAppointment.Id,
             account_id: primaryAppointment.AccountId,
-            amount: totalAmount,
+            amount: amountToCharge, // deposit or full
             subdomain,
           };
 
@@ -204,7 +215,6 @@ export default function PaymentMethodsPage() {
           for (const appt of appointments) {
             await updateAppointment(appt.Id, { Status: "Unpaid" });
           }
-          // simple redirect; your success page is mainly for online payments
           navigate(`/${subdomain}`);
         } else {
           await updateAppointment(primaryAppointment.Id, { Status: "Unpaid" });
@@ -220,7 +230,7 @@ export default function PaymentMethodsPage() {
   };
 
   // ----------------------------------------
-  // UI RENDERING
+  // LOADING / NOT FOUND
   // ----------------------------------------
   if (loading) {
     return (
@@ -239,7 +249,7 @@ export default function PaymentMethodsPage() {
   }
 
   // ----------------------------------------
-  // PAYMENT OPTION COMPONENT
+  // Payment Option Component
   // ----------------------------------------
   const PaymentOption = ({ value, label, icon }) => (
     <button
@@ -264,7 +274,7 @@ export default function PaymentMethodsPage() {
   );
 
   // ----------------------------------------
-  // FINAL RETURN
+  // RENDER PAGE
   // ----------------------------------------
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
@@ -299,9 +309,9 @@ export default function PaymentMethodsPage() {
         </h1>
       </div>
 
-      {/* CONTENT */}
+      {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10 px-6 py-14">
-        {/* LEFT */}
+        {/* LEFT SIDE */}
         <div className="col-span-12 lg:col-span-7">
           <div className="bg-white rounded-2xl p-8 shadow">
             <PaymentOption
@@ -324,7 +334,7 @@ export default function PaymentMethodsPage() {
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT SIDE */}
         <div className="col-span-12 lg:col-span-5">
           <div className="bg-white rounded-2xl shadow p-6">
             <div className="flex gap-4">
@@ -347,6 +357,7 @@ export default function PaymentMethodsPage() {
                   <MapPin size={12} />
                   {beautician?.city}, {beautician?.country}
                 </p>
+
                 {isMultiMode && (
                   <p className="text-xs text-gray-500 mt-1">
                     {appointments.length} appointments in this payment
@@ -367,9 +378,12 @@ export default function PaymentMethodsPage() {
               </div>
             </div>
 
+            {/* PAYMENT TOTAL */}
             <div className="border-t mt-4 pt-4 flex justify-between text-sm">
               <span>Total:</span>
-              <span className="font-semibold">£{totalAmount.toFixed(2)}</span>
+              <span className="font-semibold">
+                £{amountToCharge.toFixed(2)}
+              </span>
             </div>
 
             <button

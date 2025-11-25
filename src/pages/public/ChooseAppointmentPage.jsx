@@ -1,4 +1,7 @@
-// src/pages/public/ChooseAppointmentPage.jsx
+/* ================================
+   CHOOSE APPOINTMENT PAGE (FIXED)
+   Deposit modal appears once only
+   ================================ */
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -8,7 +11,7 @@ import { listBeauticians } from "../../api/beautician";
 import { getBusinessSetting } from "../../api/settings";
 import {
   listPublicGiftCards,
-  validatePublicGiftCard, // ✅ NEW
+  validatePublicGiftCard,
 } from "../../api/giftCards";
 import { listEmployees, getWeekSchedule } from "../../api/employee";
 import { listServices } from "../../api/service";
@@ -18,10 +21,9 @@ import { useAuth } from "../../context/AuthContext";
 import { createAppointment } from "../../api/appointment";
 import { validatePublicPromoCode } from "../../api/promoCode";
 
-// =======================
-// Helper functions
-// =======================
-
+/* ======================================================================
+   Helper functions
+   ====================================================================== */
 function timeToMinutes(t) {
   if (!t) return 0;
   const [h, m] = t.split(":").map(Number);
@@ -83,19 +85,17 @@ function mergeSlots(slotList) {
   return Object.values(map);
 }
 
-// =======================
-// Component
-// =======================
-
+/* ======================================================================
+   COMPONENT START
+   ====================================================================== */
 export default function ChooseAppointmentPage() {
   const { serviceId, employeeId, subdomain } = useParams();
   const navigate = useNavigate();
-
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
-  const [giftCards, setGiftCards] = useState([]); // list, not required for validation but kept
+  const [giftCards, setGiftCards] = useState([]);
 
   const [ACCOUNT_ID, setACCOUNT_ID] = useState(null);
 
@@ -110,42 +110,48 @@ export default function ChooseAppointmentPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
 
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), 1);
-  });
+  /* ======================================================================
+     MODALS
+     ====================================================================== */
 
   const [showAuth, setShowAuth] = useState(false);
+
+  // ⛔ THIS WAS CAUSING THE DOUBLE MODAL ISSUE
+  // We now persist the acceptance until appt is done
+  const [showDepositPolicy, setShowDepositPolicy] = useState(false);
+  const [depositPolicyAccepted, setDepositPolicyAccepted] = useState(false);
 
   const [timeSlots, setTimeSlots] = useState([]);
   const [bookingEmployeeId, setBookingEmployeeId] = useState(null);
 
-  const headerLoading = loadingBeautician || loadingSettings;
+  /* ======================================================================
+     DISCOUNTS
+     ====================================================================== */
 
-  // =======================
-  // Discounts state
-  // =======================
+  const [discountMode, setDiscountMode] = useState("none");
 
-  const [discountMode, setDiscountMode] = useState("none"); // 'none' | 'promo' | 'gift_card'
-
-  // Promo
   const [promoInput, setPromoInput] = useState("");
   const [promoApplying, setPromoApplying] = useState(false);
   const [promoError, setPromoError] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState(null); // { code, discount_type, discount_value, ... }
+  const [appliedPromo, setAppliedPromo] = useState(null);
 
-  // Gift Card
   const [giftCardInput, setGiftCardInput] = useState("");
   const [giftCardApplying, setGiftCardApplying] = useState(false);
   const [giftCardError, setGiftCardError] = useState("");
-  const [appliedGiftCard, setAppliedGiftCard] = useState(null); // { code, remaining_amount, ... }
+  const [appliedGiftCard, setAppliedGiftCard] = useState(null);
 
-  // =======================
-  // Load beautician + account
-  // =======================
+  /* ======================================================================
+     PAYMENT OPTION
+     ====================================================================== */
+
+  const [paymentOption, setPaymentOption] = useState("deposit");
+
+  /* ======================================================================
+     LOAD BEAUTICIAN + ACCOUNT
+     ====================================================================== */
 
   useEffect(() => {
-    const loadBeautician = async () => {
+    async function loadBeautician() {
       try {
         const res = await listBeauticians({ subdomain });
         const b = res.data?.[0];
@@ -154,28 +160,25 @@ export default function ChooseAppointmentPage() {
           setBeautician(b);
           setACCOUNT_ID(b.account_id);
 
-          // Make account ID available globally for AuthModal (signup)
           window.__currentAccountId = b.account_id;
           localStorage.setItem("public_account_id", b.account_id);
         }
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoadingBeautician(false);
       }
-    };
+    }
 
     loadBeautician();
   }, [subdomain]);
 
-  // =======================
-  // Load business settings & public gift cards
-  // =======================
+  /* ======================================================================
+     LOAD SETTINGS + GIFT CARDS
+     ====================================================================== */
 
   useEffect(() => {
     if (!ACCOUNT_ID) return;
 
-    const loadHeaderData = async () => {
+    async function loadHeaderData() {
       try {
         const [settingsRes, giftRes] = await Promise.all([
           getBusinessSetting("site", ACCOUNT_ID),
@@ -184,39 +187,24 @@ export default function ChooseAppointmentPage() {
 
         setBusinessSettings(settingsRes || {});
         setGiftCards(giftRes || []);
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoadingSettings(false);
       }
-    };
+    }
 
     loadHeaderData();
   }, [ACCOUNT_ID]);
 
-  const finalLogo =
-    businessSettings?.logo_url ||
-    beautician?.logo_url ||
-    "/images/dummy/dummy.png";
-
-  const finalCover =
-    businessSettings?.cover_url ||
-    beautician?.cover_url ||
-    "/images/dummy/dummy.png";
-
-  const businessLocation =
-    [beautician?.city, beautician?.country].filter(Boolean).join(", ") ||
-    "Your Location";
-
-  // =======================
-  // Load service & employees
-  // =======================
+  /* ======================================================================
+     LOAD SERVICE + EMPLOYEES
+     ====================================================================== */
 
   useEffect(() => {
     if (!ACCOUNT_ID) return;
 
-    const loadMain = async () => {
+    async function loadMain() {
       setLoadingMain(true);
+
       try {
         const [empRes, srvRes] = await Promise.all([
           listEmployees({ account_id: ACCOUNT_ID }),
@@ -229,65 +217,60 @@ export default function ChooseAppointmentPage() {
         const foundService = allServices.find(
           (s) => String(s.Id) === String(serviceId)
         );
+
         setService(foundService || null);
 
-        const eligibleEmployees = allEmployees.filter((emp) =>
+        const eligible = allEmployees.filter((emp) =>
           (emp.services_full || emp.services || []).some(
             (srv) => String(srv.Id) === String(serviceId)
           )
         );
 
-        setServiceEmployees(eligibleEmployees);
+        setServiceEmployees(eligible);
 
         let foundEmployee = null;
         if (employeeId !== "any") {
           foundEmployee =
-            eligibleEmployees.find(
-              (e) => String(e.id) === String(employeeId)
-            ) || allEmployees.find((e) => String(e.id) === String(employeeId));
+            eligible.find((e) => String(e.id) === String(employeeId)) ||
+            allEmployees.find((e) => String(e.id) === String(employeeId));
         }
 
         setEmployee(foundEmployee || null);
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoadingMain(false);
       }
-    };
+    }
 
     loadMain();
   }, [ACCOUNT_ID, serviceId, employeeId]);
 
-  // =======================
-  // Calendar helpers
-  // =======================
+  /* ======================================================================
+     CALENDAR HELPERS
+     ====================================================================== */
 
-  const getDaysInMonth = () => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const t = new Date();
+    return new Date(t.getFullYear(), t.getMonth(), 1);
+  });
 
-  const nextMonth = () => {
+  const getDaysInMonth = () =>
+    new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
+
+  const nextMonth = () =>
     setCalendarMonth(
       new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)
     );
-  };
 
-  const prevMonth = () => {
+  const prevMonth = () =>
     setCalendarMonth(
       new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)
     );
-  };
 
   const firstDayOffset = useMemo(() => {
     const y = calendarMonth.getFullYear();
     const m = calendarMonth.getMonth();
-
-    let weekday = new Date(y, m, 1).getDay();
-    weekday = weekday === 0 ? 6 : weekday - 1;
-
-    return weekday;
+    let w = new Date(y, m, 1).getDay();
+    return w === 0 ? 6 : w - 1;
   }, [calendarMonth]);
 
   function formatDateLocal(date) {
@@ -297,9 +280,9 @@ export default function ChooseAppointmentPage() {
     return `${y}-${m}-${d}`;
   }
 
-  // =======================
-  // Load time slots
-  // =======================
+  /* ======================================================================
+     LOAD TIME SLOTS
+     ====================================================================== */
 
   useEffect(() => {
     if (!selectedDate || !service || loadingMain) return;
@@ -310,25 +293,24 @@ export default function ChooseAppointmentPage() {
       Number(service.DefaultAppointmentDuration || 30) *
       (service.DurationUnit === "hours" ? 60 : 1);
 
-    const loadSlots = async () => {
+    async function loadSlots() {
       try {
-        // CASE 1: Specific employee selected
+        // Specific employee
         if (employeeId !== "any") {
-          if (!employee) return; // Wait until employee loads
-
+          if (!employee) return;
           const empId = employee.id;
+
           const res = await getWeekSchedule(empId, dateStr);
           const day = res?.days?.find((d) => d.date === dateStr);
-          const slots = buildSlotsFromDay(day, durationMinutes, empId);
 
-          setTimeSlots(slots);
+          setTimeSlots(buildSlotsFromDay(day, durationMinutes, empId));
           setSelectedTime(null);
           setBookingEmployeeId(null);
           return;
         }
 
-        // CASE 2: ANY employee (merge all)
-        if (!serviceEmployees.length) return; // Wait for employees
+        // ANY employee
+        if (!serviceEmployees.length) return;
 
         const promises = serviceEmployees.map((emp) =>
           getWeekSchedule(emp.id, dateStr).then((res) => {
@@ -337,31 +319,23 @@ export default function ChooseAppointmentPage() {
           })
         );
 
-        const results = await Promise.all(promises);
-        const merged = mergeSlots(results.flat());
+        const all = await Promise.all(promises);
 
+        const merged = mergeSlots(all.flat());
         setTimeSlots(merged);
         setSelectedTime(null);
         setBookingEmployeeId(null);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setTimeSlots([]);
       }
-    };
+    }
 
     loadSlots();
-  }, [
-    selectedDate,
-    service,
-    employeeId,
-    employee,
-    serviceEmployees,
-    loadingMain,
-  ]);
+  }, [selectedDate, service, employeeId, employee, serviceEmployees, loadingMain]);
 
-  // =======================
-  // Effective employee
-  // =======================
+  /* ======================================================================
+     EFFECTIVE EMPLOYEE NAME
+     ====================================================================== */
 
   const effectiveEmployeeName = useMemo(() => {
     if (employee) return employee.name;
@@ -370,41 +344,34 @@ export default function ChooseAppointmentPage() {
       const found = serviceEmployees.find(
         (e) => String(e.id) === String(bookingEmployeeId)
       );
-      if (found?.name) return found.name;
+      return found?.name || "any professional";
     }
 
     return "any professional";
   }, [employee, bookingEmployeeId, serviceEmployees]);
 
-  // =======================
-  // Pricing & discounts
-  // =======================
+  /* ======================================================================
+     PRICING
+     ====================================================================== */
 
   const basePrice = useMemo(
     () => Number(service?.TotalPrice || 0),
     [service]
   );
 
-  // Promo discount only
   const promoDiscountAmount = useMemo(() => {
     if (!service || !appliedPromo) return 0;
+    const v = Number(appliedPromo.discount_value || 0);
+    if (!v) return 0;
 
-    const value = Number(appliedPromo.discount_value || 0);
-    if (!value) return 0;
-
-    if (appliedPromo.discount_type === "percent") {
-      return Math.min(basePrice, (basePrice * value) / 100);
-    }
-
-    // fixed amount
-    return Math.min(basePrice, value);
+    return appliedPromo.discount_type === "percent"
+      ? Math.min(basePrice, (basePrice * v) / 100)
+      : Math.min(basePrice, v);
   }, [service, appliedPromo, basePrice]);
 
-  // Gift card discount (applied on top of promo, but not below zero)
   const giftCardDiscountAmount = useMemo(() => {
     if (!appliedGiftCard) return 0;
 
-    // Amount available on the card (tweak the field names to match your API)
     const remaining =
       Number(
         appliedGiftCard.remaining_amount ??
@@ -413,28 +380,38 @@ export default function ChooseAppointmentPage() {
           0
       ) || 0;
 
-    if (remaining <= 0) return 0;
+    const afterPromo = Math.max(0, basePrice - promoDiscountAmount);
+    if (afterPromo <= 0) return 0;
 
-    // Max we can still charge after promo
-    const remainingAfterPromo = Math.max(0, basePrice - promoDiscountAmount);
-
-    if (remainingAfterPromo <= 0) return 0;
-
-    return Math.min(remainingAfterPromo, remaining);
+    return Math.min(afterPromo, remaining);
   }, [appliedGiftCard, basePrice, promoDiscountAmount]);
 
   const finalTotal = useMemo(
-    () =>
-      Math.max(
-        0,
-        basePrice - promoDiscountAmount - giftCardDiscountAmount
-      ),
+    () => Math.max(0, basePrice - promoDiscountAmount - giftCardDiscountAmount),
     [basePrice, promoDiscountAmount, giftCardDiscountAmount]
   );
 
-  // =======================
-  // Apply promo code
-  // =======================
+  const minimumDeposit = useMemo(() => {
+    if (!service || !service.Deposit) return 0;
+    return service.DepositType === 0
+      ? (Number(service.TotalPrice) * Number(service.Deposit)) / 100
+      : Number(service.Deposit);
+  }, [service]);
+
+  const amountToPayNow = useMemo(() => {
+    return paymentOption === "full"
+      ? finalTotal
+      : Math.min(minimumDeposit, finalTotal);
+  }, [paymentOption, minimumDeposit, finalTotal]);
+
+  const remainingBalance = useMemo(
+    () => Math.max(0, finalTotal - amountToPayNow),
+    [finalTotal, amountToPayNow]
+  );
+
+  /* ======================================================================
+     APPLY PROMO CODE
+     ====================================================================== */
 
   const handleApplyPromo = async () => {
     setPromoError("");
@@ -459,30 +436,28 @@ export default function ChooseAppointmentPage() {
         code,
       });
 
-      if (!res?.valid) {
+      if (res?.valid) {
+        setAppliedPromo(res.data || res);
+        setPromoError("");
+      } else {
         setAppliedPromo(null);
         setPromoError(res?.message || "Invalid or expired promo code.");
-        return;
       }
-
-      setAppliedPromo(res.data || res);
-      setPromoError("");
     } catch (err) {
-      console.error("Apply promo error:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Invalid or expired promo code.";
       setAppliedPromo(null);
-      setPromoError(msg);
+      setPromoError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Invalid or expired promo code."
+      );
     } finally {
       setPromoApplying(false);
     }
   };
 
-  // =======================
-  // Apply gift card
-  // =======================
+  /* ======================================================================
+     APPLY GIFT CARD
+     ====================================================================== */
 
   const handleApplyGiftCard = async () => {
     setGiftCardError("");
@@ -501,51 +476,60 @@ export default function ChooseAppointmentPage() {
     setGiftCardApplying(true);
 
     try {
-      // Mirror promo pattern: { account_id, code }
       const res = await validatePublicGiftCard({
         account_id: ACCOUNT_ID,
         code,
       });
 
-      if (!res?.valid) {
+      if (res?.valid) {
+        setAppliedGiftCard(res.data || res);
+        setGiftCardError("");
+      } else {
         setAppliedGiftCard(null);
         setGiftCardError(res?.message || "Invalid or expired gift card.");
-        return;
       }
-
-      setAppliedGiftCard(res.data || res);
-      setGiftCardError("");
     } catch (err) {
-      console.error("Apply gift card error:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Invalid or expired gift card.";
       setAppliedGiftCard(null);
-      setGiftCardError(msg);
+      setGiftCardError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Invalid or expired gift card."
+      );
     } finally {
       setGiftCardApplying(false);
     }
   };
 
-  // =======================
-  // Continue (create appointment)
-  // =======================
+  /* ======================================================================
+     CONTINUE NEXT STEP
+     ====================================================================== */
 
   const handleContinue = async () => {
-    if (!service) return;
-    if (!selectedDate || !selectedTime) return;
-    if (!ACCOUNT_ID) return;
+    /* ------------------------------
+       1) SHOW DEPOSIT POLICY ONLY ONCE
+       ------------------------------ */
+    if (paymentOption === "deposit" && !depositPolicyAccepted) {
+      setShowDepositPolicy(true);
+      return;
+    }
 
+    /* ------------------------------
+       2) IF NOT LOGGED IN → SHOW LOGIN MODAL
+       ------------------------------ */
     if (!isAuthenticated) {
       setShowAuth(true);
       return;
     }
 
+    /* ------------------------------
+       3) CREATE APPOINTMENT
+       ------------------------------ */
     try {
       const start = new Date(selectedDate);
       const [timePart, modifier] = selectedTime.split(" ");
+
       let [hours, minutes] = timePart.split(":");
+
       hours = parseInt(hours, 10);
       minutes = parseInt(minutes, 10);
 
@@ -554,8 +538,6 @@ export default function ChooseAppointmentPage() {
 
       start.setHours(hours);
       start.setMinutes(minutes);
-      start.setSeconds(0);
-      start.setMilliseconds(0);
 
       const durationMinutes =
         Number(service.DefaultAppointmentDuration || 30) *
@@ -566,7 +548,7 @@ export default function ChooseAppointmentPage() {
 
       const resolvedEmployeeId =
         bookingEmployeeId ??
-        (employee ? employee.id : employeeId === "any" ? null : Number(employeeId));
+        (employee ? employee.id : employeeId === "any" ? null : employeeId);
 
       const customerId = localStorage.getItem("customer_id");
 
@@ -580,22 +562,33 @@ export default function ChooseAppointmentPage() {
         EmployeeId: resolvedEmployeeId,
         CustomerId: Number(customerId),
         AccountId: ACCOUNT_ID,
+
         StartDateTime: start.toISOString(),
         EndDateTime: end.toISOString(),
+
         Status: "Pending",
         Cost: service.TotalPrice,
-        Deposit: service.Deposit || 0,
-        FinalAmount: finalTotal, // discounted total
+
+        Deposit: minimumDeposit,
+        DepositPaid: amountToPayNow,
+        RemainingBalance: remainingBalance,
+        PaymentMode: paymentOption,
+
+        FinalAmount: finalTotal,
         Tip: 0,
         RefundAmount: 0,
-        Discount: promoDiscountAmount, // promo discount only
-        GiftCardAmount: giftCardDiscountAmount, // ✅ NEW
-        DateCreated: new Date().toISOString(),
+
+        Discount: promoDiscountAmount,
+        GiftCardAmount: giftCardDiscountAmount,
+
         PromoCode: appliedPromo?.code || null,
-        GiftCardCode: appliedGiftCard?.code || appliedGiftCard?.Code || null, // ✅ NEW
+        GiftCardCode: appliedGiftCard?.code || appliedGiftCard?.Code || null,
       };
 
       const appt = await createAppointment(payload);
+
+      // reset acceptance AFTER the booking is created
+      setDepositPolicyAccepted(false);
 
       navigate(
         `/${subdomain}/booking/${serviceId}/${employeeId}/payment/${appt.Id}`,
@@ -603,6 +596,7 @@ export default function ChooseAppointmentPage() {
           state: {
             selectedDate: start.toISOString(),
             selectedTime,
+            paymentOption,
           },
         }
       );
@@ -611,29 +605,30 @@ export default function ChooseAppointmentPage() {
     }
   };
 
-  // =======================
-  // Skeleton header
-  // =======================
+  /* ======================================================================
+     RENDER START
+     ====================================================================== */
 
   const SkeletonHeader = () => (
     <div className="w-full h-[430px] bg-gray-200 animate-pulse mt-[80px]" />
   );
 
-  // =======================
-  // Render
-  // =======================
-
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
+
       {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
           <div className="h-10 max-w-[180px] flex items-center">
-            {headerLoading ? (
+            {loadingBeautician || loadingSettings ? (
               <div className="w-32 h-full bg-gray-200 animate-pulse rounded" />
             ) : (
               <img
-                src={finalLogo}
+                src={
+                  businessSettings?.logo_url ||
+                  beautician?.logo_url ||
+                  "/images/dummy/dummy.png"
+                }
                 alt="Logo"
                 className="h-full w-full object-contain"
               />
@@ -649,17 +644,21 @@ export default function ChooseAppointmentPage() {
       </header>
 
       {/* HERO */}
-      {headerLoading ? (
+      {loadingBeautician || loadingSettings ? (
         <SkeletonHeader />
       ) : (
         <div className="w-full h-[430px] mt-[80px] overflow-hidden relative">
           <img
-            src={finalCover}
+            src={
+              businessSettings?.cover_url ||
+              beautician?.cover_url ||
+              "/images/dummy/dummy.png"
+            }
             className="w-full h-full object-cover brightness-[0.75]"
             alt="Cover"
           />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <h1 className="text-white text-4xl font-semibold text-center drop-shadow-lg">
+          <div className="absolute inset-0 flex justify-center items-center">
+            <h1 className="text-white text-4xl font-semibold drop-shadow-lg">
               Choose your Appointment
             </h1>
           </div>
@@ -669,17 +668,20 @@ export default function ChooseAppointmentPage() {
       {/* BREADCRUMB BAR */}
       <div className="w-full bg-[#E86C28] h-11 flex items-center">
         <div className="max-w-7xl mx-auto px-6 text-sm text-white">
-          Services › Professional ›{" "}
-          <span className="font-medium">Appointment</span>
+          Services › Professional › <span className="font-medium">Appointment</span>
         </div>
       </div>
 
-      {/* MAIN GRID */}
+      {/* CONTENT */}
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-12 px-6 py-14">
-        {/* LEFT: CALENDAR + TIMES */}
+
+        {/* ---------------------------------------------
+            CALENDAR COLUMN
+        ---------------------------------------------- */}
         <div className="col-span-12 lg:col-span-8">
           {/* Calendar */}
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm mb-10">
+
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-[17px] font-semibold text-[#222]">
                 {calendarMonth.toLocaleString("default", {
@@ -710,13 +712,15 @@ export default function ChooseAppointmentPage() {
               ))}
             </div>
 
+            {/* Days */}
             <div className="grid grid-cols-7 gap-2 text-center">
               {Array.from({ length: firstDayOffset }).map((_, idx) => (
                 <div key={`empty-${idx}`} />
               ))}
 
-              {Array.from({ length: getDaysInMonth() }, (_, i) => {
+              {Array.from({ length: getDaysInMonth() }).map((_, i) => {
                 const day = i + 1;
+
                 return (
                   <button
                     key={day}
@@ -747,14 +751,10 @@ export default function ChooseAppointmentPage() {
 
           {/* Time slots */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#222] mb-4">
-              Select Time
-            </h3>
+            <h3 className="text-sm font-semibold text-[#222] mb-4">Select Time</h3>
 
             {!selectedDate && (
-              <div className="text-gray-500 text-sm italic">
-                Select a date first
-              </div>
+              <div className="text-gray-500 text-sm italic">Select a date first</div>
             )}
 
             {selectedDate && !timeSlots.length && (
@@ -785,9 +785,9 @@ export default function ChooseAppointmentPage() {
                     }`}
                   >
                     {slot.time}
+
                     {employeeId === "any" &&
-                      slot.employeeIds &&
-                      slot.employeeIds.length > 1 && (
+                      slot.employeeIds?.length > 1 && (
                         <span className="ml-2 text-[11px] text-gray-400">
                           {slot.employeeIds.length} pros available
                         </span>
@@ -799,9 +799,12 @@ export default function ChooseAppointmentPage() {
           </div>
         </div>
 
-        {/* RIGHT: SUMMARY + DISCOUNTS */}
+        {/* ---------------------------------------------
+            SUMMARY COLUMN
+        ---------------------------------------------- */}
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+
             {/* Service header */}
             <div className="flex gap-4 mb-4">
               <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
@@ -814,15 +817,18 @@ export default function ChooseAppointmentPage() {
 
               <div>
                 <h3 className="font-semibold text-sm">{service?.Name}</h3>
+
                 <p className="flex items-center text-xs text-gray-500 gap-1">
                   <MapPin size={12} className="text-[#E86C28]" />
                   {beautician?.city}, {beautician?.country}
                 </p>
+
                 <p className="flex items-center text-xs text-gray-500 gap-1 mt-1">
                   <Star size={12} className="text-yellow-400" />
                   <span>5 (1)</span>
                 </p>
-                {service?.Deposit && (
+
+                {service?.Deposit > 0 && (
                   <p className="text-[11px] text-gray-500 mt-1">
                     Min Deposit{" "}
                     {service.DepositType === 0
@@ -833,10 +839,11 @@ export default function ChooseAppointmentPage() {
               </div>
             </div>
 
-            {/* Selected date/time */}
+            {/* Date/time */}
             <div className="mt-4 text-sm space-y-2">
               <div className="flex items-center gap-2 text-gray-700">
                 <CalendarDays size={16} className="text-[#E86C28]" />
+
                 {selectedDate ? (
                   <span>
                     {selectedDate.toLocaleDateString(undefined, {
@@ -864,18 +871,17 @@ export default function ChooseAppointmentPage() {
               </p>
             </div>
 
-            {/* Discount selection */}
+            {/* Discounts */}
             <div className="border-t border-gray-200 mt-5 pt-4 text-sm">
               <div className="space-y-2">
+
                 <label className="flex items-center gap-2 text-xs text-gray-700">
                   <input
                     type="radio"
                     name="discount_mode"
                     value="gift_card"
                     checked={discountMode === "gift_card"}
-                    onChange={() => {
-                      setDiscountMode("gift_card");
-                    }}
+                    onChange={() => setDiscountMode("gift_card")}
                   />
                   <span>Gift Card</span>
                 </label>
@@ -886,25 +892,18 @@ export default function ChooseAppointmentPage() {
                     name="discount_mode"
                     value="promo"
                     checked={discountMode === "promo"}
-                    onChange={() => {
-                      setDiscountMode("promo");
-                    }}
+                    onChange={() => setDiscountMode("promo")}
                   />
                   <span>Promo Code</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-400">
-                  <input
-                    type="radio"
-                    name="discount_mode"
-                    value="loyalty"
-                    disabled
-                  />
+                  <input type="radio" name="discount_mode" disabled />
                   <span>Loyalty Points</span>
                 </label>
               </div>
 
-              {/* Gift card input */}
+              {/* Gift card */}
               {discountMode === "gift_card" && (
                 <div className="mt-3">
                   <div className="flex gap-2">
@@ -915,8 +914,8 @@ export default function ChooseAppointmentPage() {
                       value={giftCardInput}
                       onChange={(e) => setGiftCardInput(e.target.value)}
                     />
+
                     <button
-                      type="button"
                       onClick={handleApplyGiftCard}
                       disabled={giftCardApplying}
                       className="px-4 py-2 rounded-full bg-[#E86C28] text-white text-xs font-semibold disabled:opacity-60"
@@ -926,9 +925,7 @@ export default function ChooseAppointmentPage() {
                   </div>
 
                   {giftCardError && (
-                    <p className="text-[11px] text-red-500 mt-1">
-                      {giftCardError}
-                    </p>
+                    <p className="text-[11px] text-red-500 mt-1">{giftCardError}</p>
                   )}
 
                   {appliedGiftCard && !giftCardError && (
@@ -949,7 +946,7 @@ export default function ChooseAppointmentPage() {
                 </div>
               )}
 
-              {/* Promo input */}
+              {/* Promo */}
               {discountMode === "promo" && (
                 <div className="mt-3">
                   <div className="flex gap-2">
@@ -960,8 +957,8 @@ export default function ChooseAppointmentPage() {
                       value={promoInput}
                       onChange={(e) => setPromoInput(e.target.value)}
                     />
+
                     <button
-                      type="button"
                       onClick={handleApplyPromo}
                       disabled={promoApplying}
                       className="px-4 py-2 rounded-full bg-[#E86C28] text-white text-xs font-semibold disabled:opacity-60"
@@ -971,50 +968,107 @@ export default function ChooseAppointmentPage() {
                   </div>
 
                   {promoError && (
-                    <p className="text-[11px] text-red-500 mt-1">
-                      {promoError}
-                    </p>
+                    <p className="text-[11px] text-red-500 mt-1">{promoError}</p>
                   )}
 
                   {appliedPromo && !promoError && (
                     <p className="text-[11px] text-green-600 mt-1">
                       Applied <strong>{appliedPromo.code}</strong> –{" "}
                       {appliedPromo.discount_type === "percent"
-                        ? `${appliedPromo.discount_value}% off`
-                        : `£${Number(
-                            appliedPromo.discount_value
-                          ).toFixed(2)} off`}
+                        ? `${appliedPromo.discount_value}%`
+                        : `£${Number(appliedPromo.discount_value).toFixed(2)}`}{" "}
+                      off
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Totals */}
+            {/* Pricing */}
             <div className="border-t border-gray-200 mt-5 pt-4 text-sm space-y-2">
+
               <div className="flex justify-between">
                 <span className="text-gray-500">Subtotal</span>
                 <span>£{basePrice.toFixed(2)}</span>
               </div>
 
               {promoDiscountAmount > 0 && (
-                <div className="flex justify-between text-[#E86C28] text-sm">
+                <div className="flex justify-between text-[#E86C28]">
                   <span>Promo discount</span>
                   <span>-£{promoDiscountAmount.toFixed(2)}</span>
                 </div>
               )}
 
               {giftCardDiscountAmount > 0 && (
-                <div className="flex justify-between text-[#E86C28] text-sm">
-                  <span>Gift Card</span>
+                <div className="flex justify-between text-[#E86C28]">
+                  <span>Gift card</span>
                   <span>-£{giftCardDiscountAmount.toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between font-semibold mt-1 pt-1 border-t border-gray-100">
-                <span>Total:</span>
+              <div className="flex justify-between font-medium border-t border-gray-100 pt-2">
+                <span>Total (after discounts)</span>
                 <span>£{finalTotal.toFixed(2)}</span>
               </div>
+
+              {service?.Deposit > 0 && (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Service minimum deposit</span>
+                  <span>£{minimumDeposit.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-semibold border-t border-gray-100 pt-2">
+                <span>Amount to Pay Now:</span>
+                <span>£{amountToPayNow.toFixed(2)}</span>
+              </div>
+
+              {remainingBalance > 0 && (
+                <p className="text-[11px] text-gray-500">
+                  Remaining balance at the salon: £{remainingBalance.toFixed(2)}
+                </p>
+              )}
+            </div>
+
+            {/* Payment options */}
+            <div className="mt-5 pt-4 border-t border-gray-200">
+              <h3 className="font-semibold mb-3">Payment Option</h3>
+
+              {service?.Deposit > 0 ? (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[#E86C28]">
+                    <input
+                      type="radio"
+                      name="payment_option"
+                      value="deposit"
+                      checked={paymentOption === "deposit"}
+                      onChange={() => setPaymentOption("deposit")}
+                    />
+                    <span>
+                      Pay Minimum Deposit (
+                      {service.DepositType === 0
+                        ? `${service.Deposit}%`
+                        : `£${Number(service.Deposit).toFixed(2)}`}
+                      )
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-gray-700">
+                    <input
+                      type="radio"
+                      name="payment_option"
+                      value="full"
+                      checked={paymentOption === "full"}
+                      onChange={() => setPaymentOption("full")}
+                    />
+                    <span>Pay Full Amount</span>
+                  </label>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-xs">
+                  This service does not require a deposit. Full payment will be charged.
+                </p>
+              )}
             </div>
 
             <button
@@ -1029,18 +1083,69 @@ export default function ChooseAppointmentPage() {
 
       {/* FOOTER */}
       <footer className="py-10 text-center text-gray-600 text-sm">
-        © 2025 All Rights Reserved by{" "}
-          <span className="text-[#E86C28]">Octane</span>
+        © 2025 All Rights Reserved by <span className="text-[#E86C28]">Octane</span>
       </footer>
 
-      {/* AUTH MODAL */}
+      {/* ======================================================================
+          DEPOSIT POLICY MODAL — FIXED
+         ====================================================================== */}
+      {showDepositPolicy && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[2000]">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
+
+            <div className="bg-[#E86C28] px-6 py-4">
+              <h3 className="text-white text-xl font-semibold">Deposit Policy</h3>
+            </div>
+
+            <div className="p-6 space-y-4 text-sm text-gray-700 leading-relaxed">
+              <p>
+                To secure your salon appointment, we require a{" "}
+                {service?.DepositType === 0
+                  ? `${service?.Deposit}%`
+                  : `£${Number(service?.Deposit).toFixed(2)}`}{" "}
+                non-refundable deposit at the time of booking.
+              </p>
+
+              <p>The remaining balance will be due on the day of your appointment.</p>
+
+              <p>
+                The deposit can be moved if you reschedule more than 24 hours in advance.
+                No-shows or late cancellations will lose the deposit.
+              </p>
+            </div>
+
+            <div className="p-4 flex justify-end gap-3 border-t bg-gray-50">
+              <button
+                onClick={() => setShowDepositPolicy(false)}
+                className="px-4 py-2 rounded-full text-sm border border-gray-300 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowDepositPolicy(false);
+                  setDepositPolicyAccepted(true); // FIXED
+                }}
+                className="px-5 py-2 rounded-full bg-[#E86C28] text-white text-sm hover:bg-[#cf5f20]"
+              >
+                Agree & Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================================
+          AUTH MODAL
+         ====================================================================== */}
       <AuthModal
         open={showAuth}
         onClose={() => setShowAuth(false)}
         mode="login"
         onSuccess={() => {
           setShowAuth(false);
-          handleContinue();
+          handleContinue(); // DOES NOT trigger deposit modal again
         }}
       />
     </div>
