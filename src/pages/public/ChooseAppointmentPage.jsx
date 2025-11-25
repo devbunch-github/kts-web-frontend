@@ -6,7 +6,10 @@ import { MapPin, Star, CalendarDays, Clock } from "lucide-react";
 
 import { listBeauticians } from "../../api/beautician";
 import { getBusinessSetting } from "../../api/settings";
-import { listPublicGiftCards } from "../../api/giftCards";
+import {
+  listPublicGiftCards,
+  validatePublicGiftCard, // ✅ NEW
+} from "../../api/giftCards";
 import { listEmployees, getWeekSchedule } from "../../api/employee";
 import { listServices } from "../../api/service";
 
@@ -15,6 +18,9 @@ import { useAuth } from "../../context/AuthContext";
 import { createAppointment } from "../../api/appointment";
 import { validatePublicPromoCode } from "../../api/promoCode";
 
+// =======================
+// Helper functions
+// =======================
 
 function timeToMinutes(t) {
   if (!t) return 0;
@@ -77,6 +83,10 @@ function mergeSlots(slotList) {
   return Object.values(map);
 }
 
+// =======================
+// Component
+// =======================
+
 export default function ChooseAppointmentPage() {
   const { serviceId, employeeId, subdomain } = useParams();
   const navigate = useNavigate();
@@ -85,7 +95,7 @@ export default function ChooseAppointmentPage() {
 
   const [beautician, setBeautician] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({});
-  const [giftCards, setGiftCards] = useState([]);
+  const [giftCards, setGiftCards] = useState([]); // list, not required for validation but kept
 
   const [ACCOUNT_ID, setACCOUNT_ID] = useState(null);
 
@@ -111,12 +121,28 @@ export default function ChooseAppointmentPage() {
   const [bookingEmployeeId, setBookingEmployeeId] = useState(null);
 
   const headerLoading = loadingBeautician || loadingSettings;
-  const [discountMode, setDiscountMode] = useState("none"); // 'none' | 'promo'
+
+  // =======================
+  // Discounts state
+  // =======================
+
+  const [discountMode, setDiscountMode] = useState("none"); // 'none' | 'promo' | 'gift_card'
+
+  // Promo
   const [promoInput, setPromoInput] = useState("");
   const [promoApplying, setPromoApplying] = useState(false);
   const [promoError, setPromoError] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState(null);   // { code, discount_type, discount_value, ... }
+  const [appliedPromo, setAppliedPromo] = useState(null); // { code, discount_type, discount_value, ... }
 
+  // Gift Card
+  const [giftCardInput, setGiftCardInput] = useState("");
+  const [giftCardApplying, setGiftCardApplying] = useState(false);
+  const [giftCardError, setGiftCardError] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState(null); // { code, remaining_amount, ... }
+
+  // =======================
+  // Load beautician + account
+  // =======================
 
   useEffect(() => {
     const loadBeautician = async () => {
@@ -128,19 +154,23 @@ export default function ChooseAppointmentPage() {
           setBeautician(b);
           setACCOUNT_ID(b.account_id);
 
-          // ⭐ Make account ID available globally for AuthModal (signup)
+          // Make account ID available globally for AuthModal (signup)
           window.__currentAccountId = b.account_id;
           localStorage.setItem("public_account_id", b.account_id);
         }
-
-      } catch (e) {}
-      finally {
+      } catch (e) {
+        console.error(e);
+      } finally {
         setLoadingBeautician(false);
       }
     };
 
     loadBeautician();
   }, [subdomain]);
+
+  // =======================
+  // Load business settings & public gift cards
+  // =======================
 
   useEffect(() => {
     if (!ACCOUNT_ID) return;
@@ -154,8 +184,9 @@ export default function ChooseAppointmentPage() {
 
         setBusinessSettings(settingsRes || {});
         setGiftCards(giftRes || []);
-      } catch (e) {}
-      finally {
+      } catch (e) {
+        console.error(e);
+      } finally {
         setLoadingSettings(false);
       }
     };
@@ -176,6 +207,10 @@ export default function ChooseAppointmentPage() {
   const businessLocation =
     [beautician?.city, beautician?.country].filter(Boolean).join(", ") ||
     "Your Location";
+
+  // =======================
+  // Load service & employees
+  // =======================
 
   useEffect(() => {
     if (!ACCOUNT_ID) return;
@@ -213,14 +248,19 @@ export default function ChooseAppointmentPage() {
         }
 
         setEmployee(foundEmployee || null);
-      } catch (e) {}
-      finally {
+      } catch (e) {
+        console.error(e);
+      } finally {
         setLoadingMain(false);
       }
     };
 
     loadMain();
   }, [ACCOUNT_ID, serviceId, employeeId]);
+
+  // =======================
+  // Calendar helpers
+  // =======================
 
   const getDaysInMonth = () => {
     const year = calendarMonth.getFullYear();
@@ -257,6 +297,9 @@ export default function ChooseAppointmentPage() {
     return `${y}-${m}-${d}`;
   }
 
+  // =======================
+  // Load time slots
+  // =======================
 
   useEffect(() => {
     if (!selectedDate || !service || loadingMain) return;
@@ -271,7 +314,7 @@ export default function ChooseAppointmentPage() {
       try {
         // CASE 1: Specific employee selected
         if (employeeId !== "any") {
-          if (!employee) return; // ❗ Wait until employee loads
+          if (!employee) return; // Wait until employee loads
 
           const empId = employee.id;
           const res = await getWeekSchedule(empId, dateStr);
@@ -285,7 +328,7 @@ export default function ChooseAppointmentPage() {
         }
 
         // CASE 2: ANY employee (merge all)
-        if (!serviceEmployees.length) return; // ❗ Wait for employees to load
+        if (!serviceEmployees.length) return; // Wait for employees
 
         const promises = serviceEmployees.map((emp) =>
           getWeekSchedule(emp.id, dateStr).then((res) => {
@@ -301,6 +344,7 @@ export default function ChooseAppointmentPage() {
         setSelectedTime(null);
         setBookingEmployeeId(null);
       } catch (err) {
+        console.error(err);
         setTimeSlots([]);
       }
     };
@@ -312,9 +356,12 @@ export default function ChooseAppointmentPage() {
     employeeId,
     employee,
     serviceEmployees,
-    loadingMain, // ensure employees/service loaded
+    loadingMain,
   ]);
 
+  // =======================
+  // Effective employee
+  // =======================
 
   const effectiveEmployeeName = useMemo(() => {
     if (employee) return employee.name;
@@ -329,12 +376,17 @@ export default function ChooseAppointmentPage() {
     return "any professional";
   }, [employee, bookingEmployeeId, serviceEmployees]);
 
-    const basePrice = useMemo(
+  // =======================
+  // Pricing & discounts
+  // =======================
+
+  const basePrice = useMemo(
     () => Number(service?.TotalPrice || 0),
     [service]
   );
 
-  const discountAmount = useMemo(() => {
+  // Promo discount only
+  const promoDiscountAmount = useMemo(() => {
     if (!service || !appliedPromo) return 0;
 
     const value = Number(appliedPromo.discount_value || 0);
@@ -348,13 +400,43 @@ export default function ChooseAppointmentPage() {
     return Math.min(basePrice, value);
   }, [service, appliedPromo, basePrice]);
 
+  // Gift card discount (applied on top of promo, but not below zero)
+  const giftCardDiscountAmount = useMemo(() => {
+    if (!appliedGiftCard) return 0;
+
+    // Amount available on the card (tweak the field names to match your API)
+    const remaining =
+      Number(
+        appliedGiftCard.remaining_amount ??
+          appliedGiftCard.balance ??
+          appliedGiftCard.amount ??
+          0
+      ) || 0;
+
+    if (remaining <= 0) return 0;
+
+    // Max we can still charge after promo
+    const remainingAfterPromo = Math.max(0, basePrice - promoDiscountAmount);
+
+    if (remainingAfterPromo <= 0) return 0;
+
+    return Math.min(remainingAfterPromo, remaining);
+  }, [appliedGiftCard, basePrice, promoDiscountAmount]);
+
   const finalTotal = useMemo(
-    () => Math.max(0, basePrice - discountAmount),
-    [basePrice, discountAmount]
+    () =>
+      Math.max(
+        0,
+        basePrice - promoDiscountAmount - giftCardDiscountAmount
+      ),
+    [basePrice, promoDiscountAmount, giftCardDiscountAmount]
   );
 
+  // =======================
+  // Apply promo code
+  // =======================
 
-    const handleApplyPromo = async () => {
+  const handleApplyPromo = async () => {
     setPromoError("");
 
     if (!service || !ACCOUNT_ID) {
@@ -398,6 +480,57 @@ export default function ChooseAppointmentPage() {
     }
   };
 
+  // =======================
+  // Apply gift card
+  // =======================
+
+  const handleApplyGiftCard = async () => {
+    setGiftCardError("");
+
+    if (!ACCOUNT_ID) {
+      setGiftCardError("Business not loaded yet.");
+      return;
+    }
+
+    const code = giftCardInput.trim();
+    if (!code) {
+      setGiftCardError("Please enter a gift card code.");
+      return;
+    }
+
+    setGiftCardApplying(true);
+
+    try {
+      // Mirror promo pattern: { account_id, code }
+      const res = await validatePublicGiftCard({
+        account_id: ACCOUNT_ID,
+        code,
+      });
+
+      if (!res?.valid) {
+        setAppliedGiftCard(null);
+        setGiftCardError(res?.message || "Invalid or expired gift card.");
+        return;
+      }
+
+      setAppliedGiftCard(res.data || res);
+      setGiftCardError("");
+    } catch (err) {
+      console.error("Apply gift card error:", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Invalid or expired gift card.";
+      setAppliedGiftCard(null);
+      setGiftCardError(msg);
+    } finally {
+      setGiftCardApplying(false);
+    }
+  };
+
+  // =======================
+  // Continue (create appointment)
+  // =======================
 
   const handleContinue = async () => {
     if (!service) return;
@@ -442,7 +575,7 @@ export default function ChooseAppointmentPage() {
         return;
       }
 
-  const payload = {
+      const payload = {
         ServiceId: Number(serviceId),
         EmployeeId: resolvedEmployeeId,
         CustomerId: Number(customerId),
@@ -452,14 +585,15 @@ export default function ChooseAppointmentPage() {
         Status: "Pending",
         Cost: service.TotalPrice,
         Deposit: service.Deposit || 0,
-        FinalAmount: finalTotal,                     // ✅ discounted total
+        FinalAmount: finalTotal, // discounted total
         Tip: 0,
         RefundAmount: 0,
-        Discount: discountAmount,                    // ✅ amount off
+        Discount: promoDiscountAmount, // promo discount only
+        GiftCardAmount: giftCardDiscountAmount, // ✅ NEW
         DateCreated: new Date().toISOString(),
-        PromoCode: appliedPromo?.code || null,       // optional, if you want it in DB
+        PromoCode: appliedPromo?.code || null,
+        GiftCardCode: appliedGiftCard?.code || appliedGiftCard?.Code || null, // ✅ NEW
       };
-
 
       const appt = await createAppointment(payload);
 
@@ -472,15 +606,26 @@ export default function ChooseAppointmentPage() {
           },
         }
       );
-    } catch (err) {}
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  // =======================
+  // Skeleton header
+  // =======================
 
   const SkeletonHeader = () => (
     <div className="w-full h-[430px] bg-gray-200 animate-pulse mt-[80px]" />
   );
 
+  // =======================
+  // Render
+  // =======================
+
   return (
     <div className="w-full min-h-screen bg-[#FAFAFA]">
+      {/* HEADER */}
       <header className="w-full bg-white shadow-sm fixed top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center py-6 px-8">
           <div className="h-10 max-w-[180px] flex items-center">
@@ -503,6 +648,7 @@ export default function ChooseAppointmentPage() {
         </div>
       </header>
 
+      {/* HERO */}
       {headerLoading ? (
         <SkeletonHeader />
       ) : (
@@ -520,14 +666,19 @@ export default function ChooseAppointmentPage() {
         </div>
       )}
 
+      {/* BREADCRUMB BAR */}
       <div className="w-full bg-[#E86C28] h-11 flex items-center">
         <div className="max-w-7xl mx-auto px-6 text-sm text-white">
-          Services › Professional › <span className="font-medium">Appointment</span>
+          Services › Professional ›{" "}
+          <span className="font-medium">Appointment</span>
         </div>
       </div>
 
+      {/* MAIN GRID */}
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-12 px-6 py-14">
+        {/* LEFT: CALENDAR + TIMES */}
         <div className="col-span-12 lg:col-span-8">
+          {/* Calendar */}
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm mb-10">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-[17px] font-semibold text-[#222]">
@@ -560,7 +711,6 @@ export default function ChooseAppointmentPage() {
             </div>
 
             <div className="grid grid-cols-7 gap-2 text-center">
-
               {Array.from({ length: firstDayOffset }).map((_, idx) => (
                 <div key={`empty-${idx}`} />
               ))}
@@ -595,6 +745,7 @@ export default function ChooseAppointmentPage() {
             </div>
           </div>
 
+          {/* Time slots */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-[#222] mb-4">
               Select Time
@@ -613,7 +764,7 @@ export default function ChooseAppointmentPage() {
             )}
 
             {selectedDate && timeSlots.length > 0 && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
                 {timeSlots.map((slot) => (
                   <button
                     key={slot.time}
@@ -648,6 +799,7 @@ export default function ChooseAppointmentPage() {
           </div>
         </div>
 
+        {/* RIGHT: SUMMARY + DISCOUNTS */}
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             {/* Service header */}
@@ -712,27 +864,20 @@ export default function ChooseAppointmentPage() {
               </p>
             </div>
 
-            {/* Promo selection */}
+            {/* Discount selection */}
             <div className="border-t border-gray-200 mt-5 pt-4 text-sm">
-              <p className="text-xs font-semibold text-gray-700 mb-2">
-                Discount options
-              </p>
-
-              <div className="space-y-1">
-                {/* You can hook Gift Card / Loyalty later – for now only promo is functional */}
+              <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs text-gray-700">
                   <input
                     type="radio"
                     name="discount_mode"
-                    value="none"
-                    checked={discountMode === "none"}
+                    value="gift_card"
+                    checked={discountMode === "gift_card"}
                     onChange={() => {
-                      setDiscountMode("none");
-                      setAppliedPromo(null);
-                      setPromoError("");
+                      setDiscountMode("gift_card");
                     }}
                   />
-                  <span>None</span>
+                  <span>Gift Card</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs text-gray-700">
@@ -741,12 +886,70 @@ export default function ChooseAppointmentPage() {
                     name="discount_mode"
                     value="promo"
                     checked={discountMode === "promo"}
-                    onChange={() => setDiscountMode("promo")}
+                    onChange={() => {
+                      setDiscountMode("promo");
+                    }}
                   />
                   <span>Promo Code</span>
                 </label>
+
+                <label className="flex items-center gap-2 text-xs text-gray-400">
+                  <input
+                    type="radio"
+                    name="discount_mode"
+                    value="loyalty"
+                    disabled
+                  />
+                  <span>Loyalty Points</span>
+                </label>
               </div>
 
+              {/* Gift card input */}
+              {discountMode === "gift_card" && (
+                <div className="mt-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-300 rounded-full px-3 py-2 text-xs"
+                      placeholder="Enter gift card code"
+                      value={giftCardInput}
+                      onChange={(e) => setGiftCardInput(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyGiftCard}
+                      disabled={giftCardApplying}
+                      className="px-4 py-2 rounded-full bg-[#E86C28] text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      {giftCardApplying ? "Applying..." : "APPLY"}
+                    </button>
+                  </div>
+
+                  {giftCardError && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      {giftCardError}
+                    </p>
+                  )}
+
+                  {appliedGiftCard && !giftCardError && (
+                    <p className="text-[11px] text-green-600 mt-1">
+                      Applied{" "}
+                      <strong>
+                        {appliedGiftCard.code || appliedGiftCard.Code}
+                      </strong>{" "}
+                      – balance £
+                      {Number(
+                        appliedGiftCard.remaining_amount ??
+                          appliedGiftCard.balance ??
+                          appliedGiftCard.amount ??
+                          0
+                      ).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Promo input */}
               {discountMode === "promo" && (
                 <div className="mt-3">
                   <div className="flex gap-2">
@@ -768,7 +971,9 @@ export default function ChooseAppointmentPage() {
                   </div>
 
                   {promoError && (
-                    <p className="text-[11px] text-red-500 mt-1">{promoError}</p>
+                    <p className="text-[11px] text-red-500 mt-1">
+                      {promoError}
+                    </p>
                   )}
 
                   {appliedPromo && !promoError && (
@@ -776,7 +981,9 @@ export default function ChooseAppointmentPage() {
                       Applied <strong>{appliedPromo.code}</strong> –{" "}
                       {appliedPromo.discount_type === "percent"
                         ? `${appliedPromo.discount_value}% off`
-                        : `£${Number(appliedPromo.discount_value).toFixed(2)} off`}
+                        : `£${Number(
+                            appliedPromo.discount_value
+                          ).toFixed(2)} off`}
                     </p>
                   )}
                 </div>
@@ -790,14 +997,21 @@ export default function ChooseAppointmentPage() {
                 <span>£{basePrice.toFixed(2)}</span>
               </div>
 
-              {discountAmount > 0 && (
+              {promoDiscountAmount > 0 && (
                 <div className="flex justify-between text-[#E86C28] text-sm">
                   <span>Promo discount</span>
-                  <span>-£{discountAmount.toFixed(2)}</span>
+                  <span>-£{promoDiscountAmount.toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between font-semibold">
+              {giftCardDiscountAmount > 0 && (
+                <div className="flex justify-between text-[#E86C28] text-sm">
+                  <span>Gift Card</span>
+                  <span>-£{giftCardDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-semibold mt-1 pt-1 border-t border-gray-100">
                 <span>Total:</span>
                 <span>£{finalTotal.toFixed(2)}</span>
               </div>
@@ -811,14 +1025,15 @@ export default function ChooseAppointmentPage() {
             </button>
           </div>
         </div>
-
       </div>
 
+      {/* FOOTER */}
       <footer className="py-10 text-center text-gray-600 text-sm">
         © 2025 All Rights Reserved by{" "}
-        <span className="text-[#E86C28]">Octane</span>
+          <span className="text-[#E86C28]">Octane</span>
       </footer>
 
+      {/* AUTH MODAL */}
       <AuthModal
         open={showAuth}
         onClose={() => setShowAuth(false)}
@@ -828,7 +1043,6 @@ export default function ChooseAppointmentPage() {
           handleContinue();
         }}
       />
-
     </div>
   );
 }

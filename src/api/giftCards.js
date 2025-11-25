@@ -91,3 +91,13 @@ export const getPublicGiftCard = async (id, accountId) => {
     throw err;
   }
 };
+
+export const validatePublicGiftCard = async (params = {}) => {
+  try {
+    const res = await http.get("/api/public/gift-card/validate", { params });
+    return res.data; // { valid: bool, data?, message? }
+  } catch (err) {
+    console.error("validatePublicGiftCard error:", err);
+    throw err;
+  }
+};
