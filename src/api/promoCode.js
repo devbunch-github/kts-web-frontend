@@ -77,3 +77,8 @@ export const validatePublicPromoCode = async (params = {}) => {
     throw err;
   }
 };
+
+export async function fetchPromoUsage(id, params = {}) {
+  const res = await http.get(`/api/promo-codes/${id}/usages`, { params });
+  return res.data;
+}

@@ -113,6 +113,9 @@ import GiftCardPaymentPage from "./pages/public/GiftCardPaymentPage.jsx";
 import GiftCardThankYouPage from "./pages/public/GiftCardThankYouPage.jsx";
 import GiftCardPaymentCancelled from "./pages/public/GiftCardPaymentCancelled.jsx";
 
+import PromoCodeUsagePage from "./pages/PromoCodes/PromoCodeUsagePage.jsx";
+import GiftCardUsagePage from "./pages/gift-cards/GiftCardUsagePage.jsx";
+
 export default function App() {
   return (
     <PublicBusinessProvider>
@@ -267,6 +270,10 @@ export default function App() {
               <Route path="promo-codes" element={<PromoCodeIndex />} />
               <Route path="promo-codes/new" element={<PromoCodeForm />} />
               <Route path="promo-codes/edit/:id" element={<PromoCodeForm />} />
+
+              <Route path="promo-codes/view/:id" element={<PromoCodeUsagePage />} />
+              <Route path="gift-cards/view/:id" element={<GiftCardUsagePage />} />
+
 
               {/* Gift cards */}
               <Route  path="gift-cards" element={<GiftCardIndex />} />

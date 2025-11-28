@@ -372,13 +372,7 @@ export default function ChooseAppointmentPage() {
   const giftCardDiscountAmount = useMemo(() => {
     if (!appliedGiftCard) return 0;
 
-    const remaining =
-      Number(
-        appliedGiftCard.remaining_amount ??
-          appliedGiftCard.balance ??
-          appliedGiftCard.amount ??
-          0
-      ) || 0;
+    const remaining = Number(appliedGiftCard.remaining ?? 0);
 
     const afterPromo = Math.max(0, basePrice - promoDiscountAmount);
     if (afterPromo <= 0) return 0;
@@ -430,10 +424,12 @@ export default function ChooseAppointmentPage() {
     setPromoApplying(true);
 
     try {
+      const customerId = localStorage.getItem("customer_id");
       const res = await validatePublicPromoCode({
         account_id: ACCOUNT_ID,
         service_id: service.Id,
         code,
+        customer_id: customerId || null,
       });
 
       if (res?.valid) {
@@ -476,9 +472,11 @@ export default function ChooseAppointmentPage() {
     setGiftCardApplying(true);
 
     try {
+      const customerId = localStorage.getItem("customer_id");
       const res = await validatePublicGiftCard({
         account_id: ACCOUNT_ID,
         code,
+        customer_id: customerId || null,
       });
 
       if (res?.valid) {
@@ -573,6 +571,7 @@ export default function ChooseAppointmentPage() {
         DepositPaid: amountToPayNow,
         RemainingBalance: remainingBalance,
         PaymentMode: paymentOption,
+        PaymentMethod: paymentOption, // <-- recommended for backend income logging
 
         FinalAmount: finalTotal,
         Tip: 0,
@@ -584,6 +583,7 @@ export default function ChooseAppointmentPage() {
         PromoCode: appliedPromo?.code || null,
         GiftCardCode: appliedGiftCard?.code || appliedGiftCard?.Code || null,
       };
+
 
       const appt = await createAppointment(payload);
 

@@ -101,3 +101,8 @@ export const validatePublicGiftCard = async (params = {}) => {
     throw err;
   }
 };
+
+export async function fetchGiftCardUsage(id, params = {}) {
+  const res = await http.get(`/api/gift-cards/${id}/usages`, { params });
+  return res.data;
+}

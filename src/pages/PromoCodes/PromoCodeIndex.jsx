@@ -6,6 +6,7 @@ import {
   deletePromoCode,
 } from "@/api/promoCode";
 import {
+  Eye,
   Pencil,
   Trash2,
   Plus,
@@ -224,6 +225,12 @@ export default function PromoCodeIndex() {
                           }
                         >
                           <Pencil className="h-4 w-4" /> Edit
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-[#2F2F2F] hover:opacity-80"
+                          onClick={() => navigate(`/dashboard/promo-codes/view/${r.id}`)}
+                        >
+                          <Eye className="h-4 w-4" /> Usage
                         </button>
                         <button
                           onClick={() => openConfirm(r.id)}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { listGiftCards, deleteGiftCard } from "@/api/giftCards";
 import {
+  Eye,
   Pencil,
   Trash2,
   Plus,
@@ -226,6 +227,13 @@ export default function GiftCardIndex() {
                         >
                           <Pencil className="h-4 w-4" /> Edit
                         </button>
+                        <button
+                          className="flex items-center gap-1 text-[#2F2F2F] hover:opacity-80"
+                          onClick={() => navigate(`/dashboard/gift-cards/view/${r.id}`)}
+                        >
+                          <Eye className="h-4 w-4" /> Usage
+                        </button>
+
                         <button
                           onClick={() => openConfirm(r.id)}
                           className="flex items-center gap-1 text-[#2F2F2F] hover:opacity-80"
