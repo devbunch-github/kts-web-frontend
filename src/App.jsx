@@ -81,6 +81,12 @@ import EmailMessageEdit from "./pages/email-messages/EmailMessageEdit";
 import ClientLayout from "./layouts/ClientLayout";
 import ClientLogin from "./pages/client/ClientLogin";
 import ClientDashboard from "./pages/client/ClientDashboard";
+import ClientPurchasedGiftCards from "./pages/client/ClientPurchasedGiftCards";
+import ClientProfile from "./pages/client/ClientProfile";
+import ClientAppointmentsPage from "./pages/client/ClientAppointments";
+import ClientRescheduleAppointmentPage from "./pages/client/ClientRescheduleAppointmentPage";
+import ClientRescheduleConfirmationPage from "./pages/client/ClientRescheduleConfirmationPage";
+
 import LoyaltyCardPage from "./pages/loyalty/LoyaltyCardPage";
 import LoyaltyProgramPage from "./pages/loyalty/LoyaltyProgramPage";
 
@@ -325,6 +331,18 @@ export default function App() {
             <Route path="/client" element={<ClientLayout />}>
               <Route index element={<ClientDashboard />} />
               <Route path="/client/dashboard" element={<ClientDashboard />} />
+              <Route path="/client/appointments" element={<ClientAppointmentsPage />} />
+              <Route
+                path="/client/appointments/reschedule/:id"
+                element={<ClientRescheduleAppointmentPage />}
+              />
+              <Route
+                path="/client/appointments/reschedule/:id/confirmation"
+                element={<ClientRescheduleConfirmationPage />}
+              />
+              <Route path="/client/gift-cards" element={<ClientPurchasedGiftCards />} />
+              <Route path="/client/profile" element={<ClientProfile />} />
+
             </Route>
           </Route>
 

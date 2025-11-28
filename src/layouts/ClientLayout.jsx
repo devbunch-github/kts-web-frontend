@@ -46,15 +46,30 @@ export default function ClientLayout() {
 
           {/* Dropdown */}
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-36 bg-white rounded-md shadow-lg border z-10">
+            <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg border z-10">
+
+              {/* Profile */}
+              <button
+                onClick={() => {
+                  navigate("/client/profile");
+                  setMenuOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Profile
+              </button>
+
+              {/* Logout */}
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t"
               >
                 Logout
               </button>
+
             </div>
           )}
+
         </div>
       </header>
 
@@ -100,8 +115,9 @@ export default function ClientLayout() {
                 }`
               }
             >
-              <Gift className="w-4 h-4" /> Purchased Gift Cards
+              <Gift className="w-4 h-4" /> Purchased Gift Card
             </NavLink>
+
 
             <NavLink
               to="/client/loyalty-points"
